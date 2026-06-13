@@ -1,0 +1,11 @@
+# Strimzi operator — worker-pool 배치 (ch8.1)
+# 노드풀에 taint가 없으므로 nodeSelector만으로 충분 (GKE 자동 라벨 사용)
+nodeSelector:
+  cloud.google.com/gke-nodepool: worker-pool
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    memory: 384Mi
