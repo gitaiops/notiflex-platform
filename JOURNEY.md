@@ -12,10 +12,10 @@
 | ch2 | 2.5 GKE 클러스터 | ✅ | 2026-06-13 | notiflex-cluster (Spot, Gateway API) |
 | ch2 | 2.6 빌드/배포 | ✅ | 2026-06-13 | api:v0.1.0, Deployment replicas 2 |
 | ch2 | 2.7 첫 커밋 | ✅ | 2026-06-13 | Initial commit |
-| ch3 | 3.2 GitOps 도구 | ⬜ | | |
-| ch3 | 3.3 기능 추가 | ⬜ | | |
-| ch3 | 3.4 CI | ⬜ | | |
-| ch3 | 3.5 CI-CD 연결 | ⬜ | | |
+| ch3 | 3.2 GitOps 도구 | ✅ | 2026-06-13 | ArgoCD v3.4.3, notiflex-smb auto-sync |
+| ch3 | 3.3 기능 추가 | ✅ | 2026-06-13 | /version 추가, v0.1.1 롤링 업데이트 |
+| ch3 | 3.4 CI | ✅ | 2026-06-13 | GitHub Actions + WIF 키리스 인증 |
+| ch3 | 3.5 CI-CD 연결 | ✅ | 2026-06-13 | CI(코드→이미지) + GitOps 커밋(매니페스트→배포) |
 | ch4 | 4.2 메트릭 모니터링 | ⬜ | | |
 | ch4 | 4.3 로그 수집 | ⬜ | | |
 | ch4 | 4.4 알림 | ⬜ | | |
@@ -42,15 +42,16 @@
 
 | 영역 | 선택 | 검토한 대안 | 선택 이유 |
 |------|------|-----------|----------|
-| | | | |
+| GitOps (ch3.2) | ArgoCD | Flux | UI·App of Apps·selfHeal, 멀티테넌시 확장 용이 |
+| CI (ch3.4) | GitHub Actions | Jenkins, GitLab CI | 저장소 통합, WIF 키리스 인증 |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2 |
-| Notiflex 이미지 | api:v0.1.0 | ch2 |
-| ArgoCD | | |
+| Notiflex 이미지 | api:v0.1.1 | ch2 v0.1.0 → ch3.3 v0.1.1 |
+| ArgoCD | v3.4.3 | ch3.2 |
 | Kafka | | |
 | OTel SDK | | |
 
