@@ -12,6 +12,12 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/valkey-io/valkey-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 // Notiflex API — 알림 서비스 API 서버.
@@ -19,7 +25,7 @@ import (
 // /version : 빌드 버전
 // /id      : Valkey INCR 로 전역 순차 ID 생성 + Kafka notifications 토픽으로 이벤트 발행
 
-const version = "v0.4.0"
+const version = "v0.5.0"
 
 const (
 	idCounterKey = "notiflex:id:counter"
@@ -121,9 +127,40 @@ func startConsumer(brokers []string) {
 	}()
 }
 
+// 분산 트레이싱: OTLP gRPC exporter → Tempo
+func initTracer() func() {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		return func() {}
+	}
+	exp, err := otlptracegrpc.New(context.Background(),
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Printf("OTel exporter 생성 실패(트레이싱 스킵): %v", err)
+		return func() {}
+	}
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("notiflex-api"),
+			semconv.ServiceVersion(version),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	log.Printf("OTel 트레이싱 활성화 (endpoint=%s)", endpoint)
+	return func() { _ = tp.Shutdown(context.Background()) }
+}
+
 func main() {
 	client = connectValkey()
 	defer client.Close()
+
+	shutdownTracer := initTracer()
+	defer shutdownTracer()
+	tracer := otel.Tracer("notiflex-api")
 
 	brokers := kafkaBrokers()
 	if len(brokers) > 0 {
@@ -146,9 +183,12 @@ func main() {
 	})
 
 	mux.HandleFunc("/id", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		ctx, span := tracer.Start(r.Context(), "generate-id")
+		defer span.End()
+		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()
 		id, err := client.Do(ctx, client.B().Incr().Key(idCounterKey).Build()).AsInt64()
+		span.SetAttributes(attribute.Int64("notiflex.id", id), attribute.String("notiflex.pod", podName()))
 		w.Header().Set("Content-Type", "application/json")
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
