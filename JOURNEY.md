@@ -19,8 +19,8 @@
 | ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-06-13 | kube-prometheus-stack (Prometheus/Grafana/Alertmanager) |
 | ch4 | 4.3 로그 수집 | ✅ | 2026-06-13 | Loki SingleBinary + Fluent Bit |
 | ch4 | 4.4 알림 | ✅ | 2026-06-13 | PrometheusRule pod-restart-alert |
-| ch5 | 5.2 트래픽 관리 | ⬜ | | |
-| ch5 | 5.3 무중단 배포 | ⬜ | | |
+| ch5 | 5.2 트래픽 관리 | ✅ | 2026-06-13 | Gateway API + HTTPRoute + HealthCheckPolicy (IP 35.216.45.48) |
+| ch5 | 5.3 무중단 배포 | ✅ | 2026-06-13 | Argo Rollouts Blue/Green, v0.2.0 auto-promote |
 | ch6 | 6.1 캐시 | ⬜ | | |
 | ch6 | 6.2 시크릿 관리 | ⬜ | | |
 | ch6 | 6.3 Canary 전환 | ⬜ | | |
@@ -46,13 +46,16 @@
 | CI (ch3.4) | GitHub Actions | Jenkins, GitLab CI | 저장소 통합, WIF 키리스 인증 |
 | 메트릭 (ch4.2) | Prometheus+Grafana | Datadog, New Relic | 오픈소스, kube-prometheus-stack 일괄 설치 |
 | 로깅 (ch4.3) | Loki+Fluent Bit | ELK | 경량, Grafana 통합 조회 |
+| 외부 노출 (ch5.2) | Gateway API | Ingress(NGINX), Istio | 역할 분리, K8s 표준, GKE 네이티브 L7 |
+| 무중단 배포 (ch5.3) | Argo Rollouts Blue/Green | Flagger, Deployment RollingUpdate | preview 검증 후 일괄 전환, argoproj 통합 |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2 |
-| Notiflex 이미지 | api:v0.1.1 | ch2 v0.1.0 → ch3.3 v0.1.1 |
+| Notiflex 이미지 | api:v0.2.0 | v0.1.0 → v0.1.1 → ch5 v0.2.0 |
+| Argo Rollouts | v1.8.3 | ch5.3 |
 | ArgoCD | v3.4.3 | ch3.2 |
 | Kafka | | |
 | OTel SDK | | |
