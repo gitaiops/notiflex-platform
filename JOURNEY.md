@@ -21,10 +21,10 @@
 | ch4 | 4.4 알림 | ✅ | 2026-06-13 | PrometheusRule pod-restart-alert |
 | ch5 | 5.2 트래픽 관리 | ✅ | 2026-06-13 | Gateway API + HTTPRoute + HealthCheckPolicy (IP 35.216.45.48) |
 | ch5 | 5.3 무중단 배포 | ✅ | 2026-06-13 | Argo Rollouts Blue/Green, v0.2.0 auto-promote |
-| ch6 | 6.1 캐시 | ⬜ | | |
-| ch6 | 6.2 시크릿 관리 | ⬜ | | |
-| ch6 | 6.3 Canary 전환 | ⬜ | | |
-| ch7 | 7.2 멀티 노드풀 | ⬜ | | |
+| ch6 | 6.1 캐시 | ✅ | 2026-06-13 | Valkey INCR, api:v0.3.0 |
+| ch6 | 6.2 시크릿 관리 | ✅ | 2026-06-13 | GKE Secret Manager CSI + Workload Identity |
+| ch6 | 6.3 Canary 전환 | ✅ | 2026-06-13 | Blue/Green → Canary(20/50/80%) |
+| ch7 | 7.2 멀티 노드풀 | ✅ | 2026-06-13 | api/worker/ops-pool (GKE_METADATA) |
 | ch7 | 7.3 App of Apps | ⬜ | | |
 | ch7 | 7.4 멀티테넌시 | ⬜ | | |
 | ch8 | 8.1 메시징 | ⬜ | | |
@@ -48,14 +48,19 @@
 | 로깅 (ch4.3) | Loki+Fluent Bit | ELK | 경량, Grafana 통합 조회 |
 | 외부 노출 (ch5.2) | Gateway API | Ingress(NGINX), Istio | 역할 분리, K8s 표준, GKE 네이티브 L7 |
 | 무중단 배포 (ch5.3) | Argo Rollouts Blue/Green | Flagger, Deployment RollingUpdate | preview 검증 후 일괄 전환, argoproj 통합 |
+| 캐시 (ch6.1) | Valkey | Redis, Memcached | Redis 호환·오픈 거버넌스, 경량 standalone |
+| 시크릿 (ch6.2) | GKE Secret Manager CSI + WI | K8s Secret, 외부 Vault | 키리스(WI), 파일 마운트, GCP 네이티브 |
+| 배포 전략 (ch6.3) | Canary | Blue/Green 유지 | 점진 트래픽 전환으로 위험 분산 |
+| 멀티 노드풀 (ch7.2) | 역할별 노드풀 | 단일 노드풀 | 워크로드 격리(api/worker/ops), 리소스 예측성 |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2 |
-| Notiflex 이미지 | api:v0.2.0 | v0.1.0 → v0.1.1 → ch5 v0.2.0 |
+| Notiflex 이미지 | api:v0.3.0 | v0.1.0 → v0.1.1 → v0.2.0 → ch6 v0.3.0(Valkey) |
 | Argo Rollouts | v1.8.3 | ch5.3 |
+| Valkey | bitnami standalone | ch6.1 |
 | ArgoCD | v3.4.3 | ch3.2 |
 | Kafka | | |
 | OTel SDK | | |
@@ -64,7 +69,10 @@
 
 | 노드풀 | 머신 타입 | 노드 수 | 주요 워크로드 |
 |--------|----------|---------|-------------|
-| default-pool | e2-medium (Spot) | 2 | notiflex-api |
+| default-pool | e2-medium (Spot) | 2 | ArgoCD, 모니터링 |
+| api-pool | e2-medium (Spot) | 1 | notiflex-api, Valkey |
+| worker-pool | e2-standard-2 (Spot) | 1 | (ch8 Kafka) |
+| ops-pool | e2-small (Spot) | 1 | (ch8 Tempo/CronJob) |
 
 ## 트러블슈팅 이력
 
