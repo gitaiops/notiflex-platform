@@ -27,9 +27,9 @@
 | ch7 | 7.2 멀티 노드풀 | ✅ | 2026-06-13 | api/worker/ops-pool (GKE_METADATA) |
 | ch7 | 7.3 App of Apps | ✅ | 2026-06-13 | root-app → smb/enterprise (sync-wave) |
 | ch7 | 7.4 멀티테넌시 | ✅ | 2026-06-13 | enterprise 네임스페이스, cross-ns Valkey 공유 |
-| ch8 | 8.1 메시징 | ⬜ | | |
-| ch8 | 8.2 트레이싱 | ⬜ | | |
-| ch8 | 8.3 CronJob | ⬜ | | |
+| ch8 | 8.1 메시징 | ✅ | 2026-06-13 | Strimzi Kafka(KRaft) + notifications 토픽, Producer/Consumer |
+| ch8 | 8.2 트레이싱 | ✅ | 2026-06-13 | Tempo + OTel SDK, /id span 수집 확인 |
+| ch8 | 8.3 CronJob | ⬜ | | (라이브 데모에서 진행) |
 | ch9 | 9.1 저장소 분석 | ⬜ | | |
 | ch9 | 9.2 회고 | ⬜ | | |
 | ch9 | 9.3 온보딩 문서 | ⬜ | | |
@@ -54,15 +54,19 @@
 | 멀티 노드풀 (ch7.2) | 역할별 노드풀 | 단일 노드풀 | 워크로드 격리(api/worker/ops), 리소스 예측성 |
 | App of Apps (ch7.3) | root-app 패턴 | Application 개별 관리 | 선언적 일괄 관리, sync-wave 순서 제어 |
 | 멀티테넌시 (ch7.4) | Namespace 분리 + per-tenant Rollout | 단일 namespace + 라벨 격리, vCluster | 강한 격리, App of Apps와 자연 결합, 테넌트별 독립 배포 |
+| 메시징 (ch8.1) | Strimzi Kafka (KRaft) | RabbitMQ, Pub/Sub | 이벤트 드리븐 표준, K8s 네이티브 운영, ZooKeeper 불필요 |
+| 트레이싱 (ch8.2) | Tempo + OpenTelemetry | Jaeger, Zipkin | Grafana 통합, OTLP 표준, 경량 monolithic |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2 |
-| Notiflex 이미지 | api:v0.3.0 | v0.1.0 → v0.1.1 → v0.2.0 → ch6 v0.3.0(Valkey) |
+| Notiflex 이미지 | api:v0.5.0 | … v0.3.0(Valkey) → v0.4.0(Kafka) → v0.5.0(OTel) |
 | Argo Rollouts | v1.8.3 | ch5.3 |
 | Valkey | bitnami standalone | ch6.1 |
+| Kafka | 4.1.0 (Strimzi 1.0.0, KRaft) | ch8.1 |
+| OTel SDK | 1.43.0 (Tempo) | ch8.2 |
 | ArgoCD | v3.4.3 | ch3.2 |
 | Kafka | | |
 | OTel SDK | | |

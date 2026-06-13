@@ -91,3 +91,19 @@
 - App of Apps와 결합해 테넌트별 독립 배포·롤백이 가능하다
 - 공용 자원(Valkey)은 cross-namespace DNS로 공유해 중복을 피한다
 - 테넌트 추가가 디렉터리 + Application 추가로 단순하다
+
+## ADR-013: 이벤트 드리븐 메시징으로 Strimzi Kafka 채택 (8장)
+**시점**: 2026-06 / **결정**: 비동기 알림 처리를 위해 Strimzi로 Kafka(KRaft)를 도입한다. 동기 호출 일변도는 지양한다.
+**이유**:
+- 이벤트 드리븐으로 서비스 간 결합을 낮추고 버스트를 흡수한다
+- KRaft 모드로 ZooKeeper 운영 부담이 없다
+- Strimzi 오퍼레이터로 K8s 네이티브하게 선언적 운영한다
+- worker-pool 격리로 브로커 자원을 분리한다
+
+## ADR-014: 분산 트레이싱으로 Tempo + OpenTelemetry 채택 (8장)
+**시점**: 2026-06 / **결정**: 분산 트레이싱 백엔드로 Grafana Tempo, 계측으로 OpenTelemetry SDK(OTLP)를 채택한다.
+**이유**:
+- OTLP 표준으로 특정 벤더·백엔드에 종속되지 않는다
+- Grafana에서 메트릭·로그·트레이스를 한 화면에서 상관 분석한다
+- monolithic 모드로 ops-pool에서 경량 운영한다
+- 기존 Prometheus/Loki 관측 스택과 자연스럽게 결합한다
