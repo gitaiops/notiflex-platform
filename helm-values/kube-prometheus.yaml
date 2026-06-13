@@ -1,0 +1,52 @@
+# e2-medium 2노드에 맞춘 축소 설정 (ch4.2)
+# CPU 예산: Prometheus 100m + Grafana 50m + Alertmanager 25m + operator 25m
+prometheus:
+  prometheusSpec:
+    retention: 2h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+    # PVC 미사용 (SSD 쿼터 절약) — emptyDir
+    storageSpec: {}
+
+grafana:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  persistence:
+    enabled: false
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+
+nodeExporter:
+  enabled: true
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 5m
+      memory: 24Mi

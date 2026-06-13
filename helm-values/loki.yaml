@@ -1,0 +1,62 @@
+# Loki SingleBinary, 최소 리소스 (ch4.3)
+deploymentMode: SingleBinary
+
+loki:
+  useTestSchema: true          # schema_config 자동 생성 (없으면 기동 실패)
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+    bucketNames:
+      chunks: loki-chunks
+      ruler: loki-ruler
+      admin: loki-admin
+  limits_config:
+    retention_period: 24h
+
+singleBinary:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  persistence:
+    enabled: false
+  # read-only 루트 파일시스템이므로 /var/loki 를 emptyDir 로 마운트
+  extraVolumes:
+    - name: loki-data
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: loki-data
+      mountPath: /var/loki
+
+# SingleBinary 모드에서 불필요한 분산 컴포넌트 비활성화
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+gateway:
+  enabled: false
+monitoring:
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+
+# Grafana 데이터소스 — Prometheus가 이미 default이므로 false (multiple default 방지)
+grafana:
+  datasource:
+    isDefault: false

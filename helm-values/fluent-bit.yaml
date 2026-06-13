@@ -1,0 +1,17 @@
+# Fluent Bit → Loki 전송 (ch4.3)
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
+
+config:
+  outputs: |
+    [OUTPUT]
+        Name        loki
+        Match       *
+        Host        loki.monitoring.svc.cluster.local
+        Port        3100
+        Labels      job=fluentbit, namespace=$kubernetes['namespace_name']
+        auto_kubernetes_labels on
