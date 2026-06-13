@@ -14,6 +14,9 @@ import (
 
 var counter uint64
 
+// 빌드 시 -ldflags 로 주입 가능하지만, 기본값은 소스에 고정한다.
+const version = "v0.1.1"
+
 func podName() string {
 	if h := os.Getenv("HOSTNAME"); h != "" {
 		return h
@@ -28,6 +31,11 @@ func main() {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"version": version, "pod": podName()})
 	})
 
 	mux.HandleFunc("/id", func(w http.ResponseWriter, r *http.Request) {
