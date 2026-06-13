@@ -1,17 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: notiflex-smb
+  name: notiflex-enterprise
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   source:
     repoURL: https://github.com/gitaiops/notiflex-platform.git
     targetRevision: main
-    path: k8s/smb
+    path: k8s/enterprise
   destination:
     server: https://kubernetes.default.svc
-    namespace: notiflex
+    namespace: enterprise
   syncPolicy:
     automated:
       prune: true
