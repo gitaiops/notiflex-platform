@@ -6,7 +6,7 @@ metadata:
   labels:
     app: notiflex-api
 spec:
-  replicas: 2
+  replicas: 1   # ch6 리소스 확보 — ch7 노드풀 추가 후 2로 복원
   selector:
     matchLabels:
       app: notiflex-api
