@@ -6,3 +6,4 @@
 # go
 app/notiflex-api
 *.test
+app/notiflex
