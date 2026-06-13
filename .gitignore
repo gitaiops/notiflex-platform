@@ -1,0 +1,8 @@
+# local
+.DS_Store
+*.local
+.claude/settings.local.json
+
+# go
+app/notiflex-api
+*.test
