@@ -76,3 +76,18 @@
 - 워크로드별 머신 타입 최적화(Kafka=standard-2, ops=small)
 - GKE 자동 라벨 사용으로 nodeSelector 키 혼선을 없앤다
 - 노드풀 단위 확장·교체가 독립적이다
+
+## ADR-011: GitOps 구조로 App of Apps 채택 (7장)
+**시점**: 2026-06 / **결정**: root-app이 `argocd/apps`를 감시(recurse)하여 하위 Application을 일괄 관리한다. Application을 개별 kubectl apply 하지 않는다.
+**이유**:
+- 새 테넌트·서비스 추가가 매니페스트 한 파일 추가로 끝난다(선언적)
+- sync-wave로 인프라→플랫폼→앱 설치 순서를 제어한다
+- 루트 하나만 부트스트랩하면 나머지는 자동 동기화된다
+
+## ADR-012: 멀티테넌시로 Namespace 분리 + per-tenant Rollout 채택 (7장)
+**시점**: 2026-06 / **결정**: 테넌트(smb/enterprise)를 Namespace로 분리하고 테넌트별 독립 Rollout을 둔다. 단일 namespace 라벨 격리는 쓰지 않는다.
+**이유**:
+- Namespace 경계로 RBAC·리소스쿼터·정책을 강하게 격리한다
+- App of Apps와 결합해 테넌트별 독립 배포·롤백이 가능하다
+- 공용 자원(Valkey)은 cross-namespace DNS로 공유해 중복을 피한다
+- 테넌트 추가가 디렉터리 + Application 추가로 단순하다

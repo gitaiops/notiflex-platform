@@ -25,8 +25,8 @@
 | ch6 | 6.2 시크릿 관리 | ✅ | 2026-06-13 | GKE Secret Manager CSI + Workload Identity |
 | ch6 | 6.3 Canary 전환 | ✅ | 2026-06-13 | Blue/Green → Canary(20/50/80%) |
 | ch7 | 7.2 멀티 노드풀 | ✅ | 2026-06-13 | api/worker/ops-pool (GKE_METADATA) |
-| ch7 | 7.3 App of Apps | ⬜ | | |
-| ch7 | 7.4 멀티테넌시 | ⬜ | | |
+| ch7 | 7.3 App of Apps | ✅ | 2026-06-13 | root-app → smb/enterprise (sync-wave) |
+| ch7 | 7.4 멀티테넌시 | ✅ | 2026-06-13 | enterprise 네임스페이스, cross-ns Valkey 공유 |
 | ch8 | 8.1 메시징 | ⬜ | | |
 | ch8 | 8.2 트레이싱 | ⬜ | | |
 | ch8 | 8.3 CronJob | ⬜ | | |
@@ -52,6 +52,8 @@
 | 시크릿 (ch6.2) | GKE Secret Manager CSI + WI | K8s Secret, 외부 Vault | 키리스(WI), 파일 마운트, GCP 네이티브 |
 | 배포 전략 (ch6.3) | Canary | Blue/Green 유지 | 점진 트래픽 전환으로 위험 분산 |
 | 멀티 노드풀 (ch7.2) | 역할별 노드풀 | 단일 노드풀 | 워크로드 격리(api/worker/ops), 리소스 예측성 |
+| App of Apps (ch7.3) | root-app 패턴 | Application 개별 관리 | 선언적 일괄 관리, sync-wave 순서 제어 |
+| 멀티테넌시 (ch7.4) | Namespace 분리 + per-tenant Rollout | 단일 namespace + 라벨 격리, vCluster | 강한 격리, App of Apps와 자연 결합, 테넌트별 독립 배포 |
 
 ## 현재 버전
 
