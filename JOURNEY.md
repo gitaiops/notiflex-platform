@@ -16,9 +16,9 @@
 | ch3 | 3.3 기능 추가 | ✅ | 2026-06-13 | /version 추가, v0.1.1 롤링 업데이트 |
 | ch3 | 3.4 CI | ✅ | 2026-06-13 | GitHub Actions + WIF 키리스 인증 |
 | ch3 | 3.5 CI-CD 연결 | ✅ | 2026-06-13 | CI(코드→이미지) + GitOps 커밋(매니페스트→배포) |
-| ch4 | 4.2 메트릭 모니터링 | ⬜ | | |
-| ch4 | 4.3 로그 수집 | ⬜ | | |
-| ch4 | 4.4 알림 | ⬜ | | |
+| ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-06-13 | kube-prometheus-stack (Prometheus/Grafana/Alertmanager) |
+| ch4 | 4.3 로그 수집 | ✅ | 2026-06-13 | Loki SingleBinary + Fluent Bit |
+| ch4 | 4.4 알림 | ✅ | 2026-06-13 | PrometheusRule pod-restart-alert |
 | ch5 | 5.2 트래픽 관리 | ⬜ | | |
 | ch5 | 5.3 무중단 배포 | ⬜ | | |
 | ch6 | 6.1 캐시 | ⬜ | | |
@@ -44,6 +44,8 @@
 |------|------|-----------|----------|
 | GitOps (ch3.2) | ArgoCD | Flux | UI·App of Apps·selfHeal, 멀티테넌시 확장 용이 |
 | CI (ch3.4) | GitHub Actions | Jenkins, GitLab CI | 저장소 통합, WIF 키리스 인증 |
+| 메트릭 (ch4.2) | Prometheus+Grafana | Datadog, New Relic | 오픈소스, kube-prometheus-stack 일괄 설치 |
+| 로깅 (ch4.3) | Loki+Fluent Bit | ELK | 경량, Grafana 통합 조회 |
 
 ## 현재 버전
 
