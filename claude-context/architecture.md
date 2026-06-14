@@ -30,7 +30,7 @@
 
 ```
 외부 사용자
-   │  http://35.216.45.48
+   │  http://35.216.23.130
    ▼
 Gateway(gke-l7-regional-external-managed) ── HealthCheckPolicy(/health)
    │  HTTPRoute notiflex-route

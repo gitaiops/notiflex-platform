@@ -19,7 +19,7 @@
 | ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-06-13 | kube-prometheus-stack (Prometheus/Grafana/Alertmanager) |
 | ch4 | 4.3 로그 수집 | ✅ | 2026-06-13 | Loki SingleBinary + Fluent Bit |
 | ch4 | 4.4 알림 | ✅ | 2026-06-13 | PrometheusRule pod-restart-alert |
-| ch5 | 5.2 트래픽 관리 | ✅ | 2026-06-13 | Gateway API + HTTPRoute + HealthCheckPolicy (IP 35.216.45.48) |
+| ch5 | 5.2 트래픽 관리 | ✅ | 2026-06-13 | Gateway API + HTTPRoute + HealthCheckPolicy (IP 35.216.23.130) |
 | ch5 | 5.3 무중단 배포 | ✅ | 2026-06-13 | Argo Rollouts Blue/Green, v0.2.0 auto-promote |
 | ch6 | 6.1 캐시 | ✅ | 2026-06-13 | Valkey INCR, api:v0.3.0 |
 | ch6 | 6.2 시크릿 관리 | ✅ | 2026-06-13 | GKE Secret Manager CSI + Workload Identity |
