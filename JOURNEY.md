@@ -32,7 +32,7 @@
 | ch8 | 8.3 CronJob | ✅ | 2026-06-20 | healthcheck-cronjob, 5분 주기, ops-pool 배치 |
 | ch9 | 9.1 저장소 분석 | ⬜ | | |
 | ch9 | 9.2 회고 | ⬜ | | |
-| ch9 | 9.3 온보딩 문서 | ⬜ | | |
+| ch9 | 9.3 온보딩 문서 | ✅ | 2026-06-20 | docs/onboarding.md, 신규 합류자용 |
 | ch9 | 9.4 GitAIOps 분석 | ⬜ | | |
 | ch9 | 9.5 마무리 | ⬜ | | |
 
