@@ -29,7 +29,7 @@
 | ch7 | 7.4 멀티테넌시 | ✅ | 2026-06-13 | enterprise 네임스페이스, cross-ns Valkey 공유 |
 | ch8 | 8.1 메시징 | ✅ | 2026-06-13 | Strimzi Kafka(KRaft) + notifications 토픽, Producer/Consumer |
 | ch8 | 8.2 트레이싱 | ✅ | 2026-06-13 | Tempo + OTel SDK, /id span 수집 확인 |
-| ch8 | 8.3 CronJob | ⬜ | | (라이브 데모에서 진행) |
+| ch8 | 8.3 CronJob | ✅ | 2026-06-20 | healthcheck-cronjob, 5분 주기, ops-pool 배치 |
 | ch9 | 9.1 저장소 분석 | ⬜ | | |
 | ch9 | 9.2 회고 | ⬜ | | |
 | ch9 | 9.3 온보딩 문서 | ⬜ | | |
@@ -56,6 +56,7 @@
 | 멀티테넌시 (ch7.4) | Namespace 분리 + per-tenant Rollout | 단일 namespace + 라벨 격리, vCluster | 강한 격리, App of Apps와 자연 결합, 테넌트별 독립 배포 |
 | 메시징 (ch8.1) | Strimzi Kafka (KRaft) | RabbitMQ, Pub/Sub | 이벤트 드리븐 표준, K8s 네이티브 운영, ZooKeeper 불필요 |
 | 트레이싱 (ch8.2) | Tempo + OpenTelemetry | Jaeger, Zipkin | Grafana 통합, OTLP 표준, 경량 monolithic |
+| 배치 자동화 (ch8.3) | K8s CronJob | 외부 cron + 쿠버네티스 외부 트리거, Argo Workflows | 쿠버네티스 네이티브, ops-pool 배치, ArgoCD가 매니페스트로 관리 |
 
 ## 현재 버전
 
