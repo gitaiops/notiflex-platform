@@ -13,7 +13,7 @@
 ## What this is
 
 A B2B notification platform built on GKE by Claude Code, following the book
-"AI 시대에 개발자가 알아야 할 인프라 구성 배포 with 클로드 코드" (ch2 to ch8.2).
+"AI 시대에 개발자가 알아야 할 인프라 구성 배포 with 클로드 코드" (ch2 to ch8, including the 8.3 CronJob), plus the generated onboarding guide from ch9.
 Every step was recorded as it happened: see [`JOURNEY.md`](JOURNEY.md).
 
 The point of this repository is not the app. It is the **recorded memory**:
