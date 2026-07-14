@@ -107,3 +107,25 @@
 - Grafana에서 메트릭·로그·트레이스를 한 화면에서 상관 분석한다
 - monolithic 모드로 ops-pool에서 경량 운영한다
 - 기존 Prometheus/Loki 관측 스택과 자연스럽게 결합한다
+
+## ADR-015: 알림 규칙으로 PrometheusRule 채택 (4장, 소급 기록)
+**시점**: 2026-06 (결정) / 2026-07 (기록 소급 — 6월 구축 시 ADR-003에 한 줄로 흡수되어
+독립 기록이 누락된 것을 발견하고 뒤늦게 기록한다. 결정 근거: JOURNEY.md 4.4)
+**결정**: 알림 규칙을 PrometheusRule CRD로 관리한다 (vs Grafana Alerting).
+**이유**:
+- Prometheus 네이티브 — PromQL 표현식으로 조건을 정밀하게 정의한다
+- git으로 버전 관리 — 알림 규칙의 변경 이력을 추적한다
+- kube-prometheus-stack과 자동 연동 — `labels.release` 매칭으로 즉시 활성화된다
+- Alertmanager 라우팅과 결합 — 심각도별 수신 채널을 분리한다
+- Grafana Alerting은 UI 중심 관리라 GitOps 흐름(선언·리뷰·이력)과 맞지 않는다
+
+## ADR-016: 배치 자동화로 Kubernetes CronJob 채택 (8장, 소급 기록)
+**시점**: 2026-06-20 (결정) / 2026-07 (기록 소급 — 8.3 작업이 ADR 일괄 기록(6/13) 이후에
+진행되어 누락된 것을 발견하고 뒤늦게 기록한다. 결정 근거: JOURNEY.md 도구 선택 기록)
+**결정**: 주기적 헬스체크 자동화를 Kubernetes CronJob으로 구현한다
+(vs 외부 cron + 클러스터 외부 트리거, Argo Workflows).
+**이유**:
+- 쿠버네티스 네이티브 — 별도 스케줄러 없이 클러스터 내장 CronJob을 활용한다
+- ops-pool 배치 — 배치 워크로드를 운영 전용 노드에 격리한다
+- ArgoCD가 매니페스트로 관리 — git에서 스케줄을 바꾸면 ArgoCD가 자동 반영한다
+- Argo Workflows는 5분 주기 단일 잡에는 과한 도구다

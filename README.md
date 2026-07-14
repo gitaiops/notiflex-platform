@@ -33,7 +33,7 @@ the current picture, and past decisions never blur together:
 | --- | --- | --- |
 | Rules | project metadata and operating rules, auto-loaded every session | [`CLAUDE.md`](CLAUDE.md) |
 | Current state | one-page architecture snapshot the AI reads first | [`claude-context/architecture.md`](claude-context/architecture.md) |
-| Decisions | 14 ADRs with the alternatives considered and the reasoning | [`docs/architecture-decisions.md`](docs/architecture-decisions.md) |
+| Decisions | 16 ADRs with the alternatives considered and the reasoning (two recorded late, marked as backfill) | [`docs/architecture-decisions.md`](docs/architecture-decisions.md) |
 
 In the 4-layer terms of the GitAIOps talk, this greenfield build covers
 **Layers 1 to 3** (plans and decisions, distilled context, guardrails).
