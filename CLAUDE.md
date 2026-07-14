@@ -20,9 +20,16 @@ Claude Code와 함께 구축하는 Notiflex 플랫폼이다. 진행 이력은 `J
 ## 저장소 구조
 
 ```
-app/                # Notiflex API (Go, net/http)
-k8s/smb/            # SMB 티어 매니페스트 (namespace, deployment/rollout, service)
-JOURNEY.md          # 챕터별 진행 이력 + 도구 선택 기록
+app/                 # Notiflex API (Go, net/http)
+k8s/smb/             # SMB 티어 (rollout, gateway, secret-provider, healthcheck-cronjob)
+k8s/enterprise/      # Enterprise 티어 (SMB와 동일 패턴, 별도 namespace)
+k8s/kafka/           # Strimzi Kafka(KRaft) + notifications 토픽
+k8s/monitoring/      # PrometheusRule 알림 정의
+helm-values/         # 서드파티 차트 values (버전·값 고정)
+argocd/              # App of Apps (root-app + apps/)
+claude-context/      # 현재 아키텍처 스냅샷 (매 대화 참조)
+docs/                # ADR 16건 + 온보딩 가이드
+JOURNEY.md           # 챕터별 진행 이력 + 도구 선택 기록
 ```
 
 ## 배포 원칙
