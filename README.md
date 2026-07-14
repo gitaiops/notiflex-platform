@@ -12,25 +12,34 @@
 
 ## What this is
 
-A B2B notification platform built on GKE by Claude Code, following the book
-"AI 시대에 개발자가 알아야 할 인프라 구성 배포 with 클로드 코드" (ch2 to ch8, including the 8.3 CronJob), plus the generated onboarding guide from ch9.
+A B2B notification platform built greenfield on GKE by Claude Code, following the book
+"AI 시대에 개발자가 알아야 할 인프라 구성 배포 with 클로드 코드" (ch2 to ch8, including
+the 8.3 CronJob), plus the generated onboarding guide from ch9.
 Every step was recorded as it happened: see [`JOURNEY.md`](JOURNEY.md).
 
 The point of this repository is not the app. It is the **recorded memory**:
-plans, decisions, guardrails, and pinned values all live in Git, so both a new
-engineer and a new AI agent can start from the same source.
+rules, current state, and decisions all live in Git, so both a new engineer
+and a new AI agent can start from the same source.
 
 > Prototype / concept stage. Not production-ready. Forked from
 > [`sysnet4admin/notiflex-platform`](https://github.com/sysnet4admin/notiflex-platform).
 
-## The four layers, mapped
+## The knowledge structure
 
-| Layer | What it removes | Where it lives here |
+This repository keeps three tiers of knowledge apart, so working context,
+the current picture, and past decisions never blur together:
+
+| Tier | What it holds | Where |
 | --- | --- | --- |
-| 1. Plans humans read | missing context | [`docs/`](docs/) including 16 recorded decisions ([`architecture-decisions.md`](docs/architecture-decisions.md)) |
-| 2. Context distilled for the AI | stale memory | [`claude-context/`](claude-context/) |
-| 3. Command guardrails | improvised steps | [`CLAUDE.md`](CLAUDE.md) |
-| 4. Locked values | interpretation | [`helm-values/`](helm-values/), [`k8s/`](k8s/), [`argocd/`](argocd/) |
+| Rules | project metadata and operating rules, auto-loaded every session | [`CLAUDE.md`](CLAUDE.md) |
+| Current state | one-page architecture snapshot the AI reads first | [`claude-context/architecture.md`](claude-context/architecture.md) |
+| Decisions | 14 ADRs with the alternatives considered and the reasoning | [`docs/architecture-decisions.md`](docs/architecture-decisions.md) |
+
+In the 4-layer terms of the GitAIOps talk, this greenfield build covers
+**Layers 1 to 3** (plans and decisions, distilled context, guardrails).
+Layer 4, locking every version and value, is a discipline born in the
+production migration the talk describes; [`helm-values/`](helm-values/) is
+where it lands when a build like this heads toward production.
 
 ## Try it: ask the repository
 
