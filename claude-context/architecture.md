@@ -24,7 +24,7 @@
 | default-pool | e2-medium (Spot) | 2 | ArgoCD, 모니터링 스택 |
 | api-pool | e2-medium (Spot) | 1 | notiflex-api(smb), Valkey, Grafana |
 | worker-pool | e2-standard-2 (Spot) | 1 | Strimzi Kafka(KRaft) |
-| ops-pool | e2-small (Spot) | 1 | Tempo (이후 CronJob 예정) |
+| ops-pool | e2-small (Spot) | 1 | Tempo, notiflex-healthcheck CronJob(5분 주기) |
 
 ## 컴포넌트 다이어그램
 
