@@ -41,7 +41,7 @@ spec:
               secretProviderClass: notiflex-secrets
       containers:
         - name: api
-          image: asia-northeast3-docker.pkg.dev/project-9d5c279f-44bf-42c9-af2/notiflex/api:sha-34dfd4f
+          image: asia-northeast3-docker.pkg.dev/project-9d5c279f-44bf-42c9-af2/notiflex/api:sha-680b8d7
           ports:
             - name: http
               containerPort: 8080
