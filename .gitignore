@@ -1,0 +1,7 @@
+# Go 빌드 산출물
+app/notiflex
+*.exe
+
+# 로컬 환경
+.env
+.DS_Store

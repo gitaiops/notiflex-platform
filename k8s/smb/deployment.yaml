@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notiflex-api
+  namespace: notiflex
+  labels:
+    app: notiflex-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notiflex-api
+  template:
+    metadata:
+      labels:
+        app: notiflex-api
+    spec:
+      containers:
+        - name: api
+          image: asia-northeast3-docker.pkg.dev/project-9d5c279f-44bf-42c9-af2/notiflex/api:v0.1.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # 응답에 어느 Pod이 처리했는지 표시하기 위해 주입한다.
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
