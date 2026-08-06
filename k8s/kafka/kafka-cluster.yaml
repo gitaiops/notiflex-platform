@@ -61,5 +61,14 @@ spec:
           memory: 512Mi
     template:
       pod:
-        nodeSelector:
-          cloud.google.com/gke-nodepool: worker-pool
+        # entityOperator의 pod 템플릿은 nodeSelector를 지원하지 않는다.
+        # 지정하면 값이 잘려나가 ArgoCD가 계속 OutOfSync로 본다. affinity를 쓴다.
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: cloud.google.com/gke-nodepool
+                      operator: In
+                      values:
+                        - worker-pool
