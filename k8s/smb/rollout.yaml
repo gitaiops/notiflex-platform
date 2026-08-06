@@ -6,7 +6,7 @@ metadata:
   labels:
     app: notiflex-api
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     blueGreen:
       # 실제 트래픽을 받는 서비스
