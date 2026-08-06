@@ -22,9 +22,10 @@
 | ch5 | 5.2 트래픽 관리 | ✅ | 2026-08-06 | Gateway API, 외부 IP 35.216.104.31, HealthCheckPolicy |
 | ch5 | 5.3 무중단 배포 | ✅ | 2026-08-06 | Argo Rollouts Blue/Green, preview 30초 후 자동 승격 확인 |
 | ch5 | 5.4 ADR 기록 | ✅ | 2026-08-06 | docs/architecture-decisions.md 신설, ADR-001~007 |
-| ch6 | 6.1 캐시 | ⬜ | | |
-| ch6 | 6.2 시크릿 관리 | ⬜ | | |
-| ch6 | 6.3 Canary 전환 | ⬜ | | |
+| ch6 | 6.1 캐시 | ✅ | 2026-08-06 | Valkey standalone, INCR로 클러스터 전역 ID |
+| ch6 | 6.2 시크릿 관리 | ✅ | 2026-08-06 | Secret Manager CSI + Workload Identity, 키 파일 없음 |
+| ch6 | 6.3 Canary 전환 | ✅ | 2026-08-06 | 20/50/80/100% 단계 진행 확인 |
+| ch6 | 6.4 아키텍처 스냅샷 | ✅ | 2026-08-06 | claude-context/architecture.md 신설 |
 | ch7 | 7.2 멀티 노드풀 | ⬜ | | |
 | ch7 | 7.3 App of Apps | ⬜ | | |
 | ch7 | 7.4 멀티테넌시 | ⬜ | | |
@@ -50,17 +51,21 @@
 | 알림 (ch4.4) | PrometheusRule + Alertmanager | Grafana Alerting, PagerDuty, Cloud Monitoring Alert | 규칙이 YAML로 Git에 남아 리뷰와 `git blame`이 된다. Grafana UI 알림은 Grafana 데이터베이스에만 남아 클러스터를 다시 만들면 사라진다. Alertmanager는 4.2에서 이미 설치돼 추가 비용이 없다 |
 | 외부 진입점 (ch5.2) | GKE Gateway API | Ingress, NGINX Ingress Controller, Istio Gateway | GKE 관리형 L7 로드밸런서에 직접 붙어 Controller Pod이 필요 없다. Gateway와 HTTPRoute로 역할이 나뉘어 멀티테넌시에 맞는다. backendRefs weight로 Canary와 이어진다 |
 | 배포 전략 (ch5.3) | Argo Rollouts Blue/Green | RollingUpdate, Flagger, Istio | preview 서비스로 새 버전을 먼저 확인한 뒤 트래픽을 넘긴다. replicas 2 규모라 Pod을 잠시 두 배 쓰는 부담이 작다. ArgoCD와 같은 생태계라 ch6 Canary 전환이 쉽다 |
+| 캐시·분산 카운터 (ch6.1) | Valkey (standalone) | Redis, Memcached, 인메모리 유지 | INCR가 원자적이라 여러 Pod이 같은 카운터를 안전하게 공유한다. Redis 프로토콜 호환이라 지식이 그대로 통한다. 라이선스 위험이 없다 |
+| 시크릿 관리 (ch6.2) | Google Secret Manager + GKE CSI + Workload Identity | K8s Secret 직접 사용, HashiCorp Vault, Sealed Secrets | 키 파일 없이 접근한다. K8s Secret은 base64일 뿐 암호화가 아니다. 매니페스트에 값이 없어 공개 저장소에도 안전하다 |
+| 배포 전략 전환 (ch6.3) | Argo Rollouts Canary (20/50/80%) | Blue/Green 유지, 수동 전환 | 문제가 있어도 처음엔 20%만 노출된다. 단계마다 30초 관찰 창을 둔다. preview 서비스를 재사용해 추가 인프라가 없다 |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2에서 1.25로 시작 (OTel SDK 요구 사항 대비) |
-| Notiflex 이미지 | sha-2671a1d (코드 버전 0.3.0) | ch2 v0.1.0 → ch3.3 v0.1.1 → ch3.5부터 CI가 SHA 태그로 갱신 → ch4.2 /metrics로 0.2.0 → ch5.3 tier 필드로 0.3.0 |
+| Notiflex 이미지 | sha-680b8d7 (코드 버전 0.5.0) | ch2 v0.1.0 → ch3.3 v0.1.1 → ch3.5부터 CI가 SHA 태그 → ch4.2 /metrics 0.2.0 → ch5.3 tier 0.3.0 → ch6.1 Valkey 0.4.0 → ch6.3 0.5.0 |
 | ArgoCD | v3.5.0 | ch3.2 설치 (stable 매니페스트) |
 | kube-prometheus-stack | Prometheus v3.13.2, Grafana 13.1.2 | ch4.2 설치 |
 | Loki | 3.6.11 (chart 7.2.0) | ch4.3 설치, SingleBinary |
-| Argo Rollouts | latest (ch5.3 시점) | ch5.3 설치, Blue/Green |
+| Argo Rollouts | latest (ch5.3 시점) | ch5.3 설치, Blue/Green → ch6.3 Canary |
+| Valkey | 9.1.1 (bitnami chart) | ch6.1 설치, standalone |
 | Fluent Bit | v2.1.0 (chart 2.6.0) | ch4.3 설치 |
 | Kafka | | |
 | OTel SDK | | |
@@ -84,3 +89,6 @@
 | ch4 | TargetDown 알림이 계속 발생 (coredns) | GKE는 kube-dns를 쓰고 9153 포트를 열지 않는다. `coreDns.enabled: false`로 수집 대상에서 제외한다 |
 | ch4 | KubeCPUOvercommit 알림 발생 | e2-medium 2노드의 실제 allocatable은 노드당 949m(합계 1880m)으로, 책 예산표의 3200m보다 작다. ch6 진입 전 관측 스택 requests를 줄이고 ch7에서 노드풀을 늘려 해소한다 |
 | ch5 | Gateway가 `An active proxy-only subnetwork is required`로 IP를 못 받음 | 리전 외부 Gateway는 proxy-only 서브넷이 필요한데 자동 생성되지 않는다. `gcloud compute networks subnets create proxy-only-subnet --purpose=REGIONAL_MANAGED_PROXY --role=ACTIVE --region=asia-northeast3 --network=default --range=172.16.0.0/23`로 만든다 |
+| ch6 | CSI DaemonSet 추가 후 노드 CPU 100%, Valkey까지 Pending | GKE 관리형 로깅/모니터링 에이전트(fluentbit-gke, gke-metrics-agent, gmp)가 노드당 약 130m을 쓰는데 Loki·Prometheus와 중복이다. `gcloud container clusters update --logging=NONE --monitoring=NONE`으로 끄면 약 260m이 확보된다 |
+| ch6 | Blue/Green에서 Canary로 바꿔도 전략이 그대로 유지됨 | `kubectl apply`만으로는 전환되지 않는다. Git push를 먼저 하고 `kubectl delete rollout` 후 ArgoCD가 새 정의로 다시 만들게 한다. preview 서비스는 canaryService로 계속 쓰므로 지우면 안 된다 |
+| ch6 | Rollout을 지운 뒤 ArgoCD가 OutOfSync로 남음 | `kubectl annotate application notiflex-smb -n argocd argocd.argoproj.io/refresh=hard --overwrite`로 즉시 재조정한다 |

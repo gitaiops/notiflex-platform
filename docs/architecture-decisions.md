@@ -60,3 +60,27 @@
 - preview 서비스로 새 버전을 먼저 붙여 확인한 뒤 트래픽을 한 번에 넘긴다. `autoPromotionSeconds: 30`으로 확인 시간을 둔다
 - replicas가 2라 Blue/Green이 잠시 Pod을 두 배로 쓰는 부담이 크지 않다
 - ArgoCD와 같은 argoproj 생태계라 GitOps와 자연스럽게 맞물리고, 6장에서 Canary로 넘어갈 때 같은 Rollout 리소스를 그대로 쓴다
+
+## ADR-008: 분산 카운터로 Valkey 채택 (6장)
+**시점**: 2026-08 / **결정**: ID 발급 카운터를 Valkey(standalone)로 옮긴다. 프로세스 안 인메모리 카운터는 버린다.
+**이유**:
+- 인메모리 카운터는 Pod마다 값이 따로 돌아 같은 번호가 여러 번 나온다. Pod을 재시작하면 1부터 다시 시작한다
+- Valkey의 `INCR`는 원자적이라 여러 Pod이 동시에 호출해도 번호가 겹치지 않는다
+- Redis 프로토콜과 호환되어 클라이언트와 운영 지식이 그대로 통한다
+- Redis가 2024년 라이선스를 바꾼 뒤 Linux Foundation으로 옮겨간 포크라 라이선스 위험이 없다
+
+## ADR-009: 시크릿 관리로 Secret Manager CSI + Workload Identity 채택 (6장)
+**시점**: 2026-08 / **결정**: 비밀번호를 Google Secret Manager에 두고 GKE managed CSI로 파일 마운트한다. Kubernetes Secret에 평문으로 두거나 서비스 계정 키 파일을 쓰지 않는다.
+**이유**:
+- Workload Identity로 키 파일 없이 GCP 시크릿에 접근한다. 유출될 장기 자격 증명 자체가 없다
+- Kubernetes Secret은 base64 인코딩일 뿐 암호화가 아니다. `kubectl get secret -o yaml`로 누구나 읽는다
+- 시크릿을 바꿀 때 Secret Manager에서 새 버전만 올리면 되고, 회전과 감사 기록이 GCP 쪽에 남는다
+- 매니페스트에 값이 들어가지 않으므로 Git 저장소가 공개여도 문제가 없다
+
+## ADR-010: 배포 전략을 Blue/Green에서 Canary로 전환 (6장)
+**시점**: 2026-08 / **결정**: Argo Rollouts 전략을 Canary(20 → 50 → 80 → 100%)로 바꾼다. Blue/Green은 더 쓰지 않는다.
+**이유**:
+- Blue/Green은 전환이 한 번에 일어나 문제가 있으면 전체 사용자가 동시에 겪는다. Canary는 처음 20%만 노출된다
+- 각 단계에 30초 관찰 시간을 둬서 메트릭과 로그로 이상을 확인할 창을 만든다
+- 5장에서 만든 preview 서비스를 `canaryService`로 그대로 재사용하므로 추가 인프라가 없다
+- 전략만 바꾸면 되고 Rollout 리소스와 GitOps 흐름은 그대로다
