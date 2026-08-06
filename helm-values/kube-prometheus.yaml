@@ -1,12 +1,13 @@
 # e2-medium 2노드 환경에 맞춰 리소스를 낮춘 값이다.
-# ch6에서 CSI DaemonSet이 240m을 더 쓰므로 그 전에 한 번 더 줄인다.
+# 실제 allocatable은 노드당 949m(합계 1880m)이라 여유가 크지 않다.
+# ch6에서 CSI DaemonSet이 240m을 더 쓰므로 ch5 진입 시점에 미리 줄여 둔다.
 
 prometheus:
   prometheusSpec:
     retention: 6h
     resources:
       requests:
-        cpu: 100m
+        cpu: 25m
         memory: 256Mi
       limits:
         memory: 700Mi
@@ -17,7 +18,7 @@ grafana:
   adminPassword: notiflex-admin
   resources:
     requests:
-      cpu: 50m
+      cpu: 15m
       memory: 128Mi
     limits:
       memory: 256Mi
@@ -28,7 +29,7 @@ alertmanager:
   alertmanagerSpec:
     resources:
       requests:
-        cpu: 25m
+        cpu: 10m
         memory: 64Mi
       limits:
         memory: 128Mi
@@ -36,7 +37,7 @@ alertmanager:
 prometheusOperator:
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
 
 kubeStateMetrics:
@@ -45,13 +46,13 @@ kubeStateMetrics:
 kube-state-metrics:
   resources:
     requests:
-      cpu: 10m
+      cpu: 5m
       memory: 32Mi
 
 prometheus-node-exporter:
   resources:
     requests:
-      cpu: 10m
+      cpu: 5m
       memory: 32Mi
 
 # GKE는 컨트롤 플레인을 사용자에게 노출하지 않으므로 해당 수집 대상을 끈다.
