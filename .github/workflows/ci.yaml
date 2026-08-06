@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yaml'
+
+env:
+  REGISTRY: asia-northeast3-docker.pkg.dev
+  IMAGE_PATH: project-9d5c279f-44bf-42c9-af2/notiflex/api
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      # WIF로 GCP에 인증하려면 OIDC 토큰 발급 권한이 필요하다.
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: GCP 인증 (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/299472546927/locations/global/workloadIdentityPools/github/providers/gitaiops
+          service_account: notiflex-ci@project-9d5c279f-44bf-42c9-af2.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Docker 인증 설정
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: 이미지 빌드 및 푸시
+        run: |
+          IMAGE="${REGISTRY}/${IMAGE_PATH}:sha-${GITHUB_SHA::7}"
+          echo "빌드 대상: $IMAGE"
+          docker build -t "$IMAGE" app/
+          docker push "$IMAGE"
