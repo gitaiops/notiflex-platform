@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   name: notiflex-api
-  namespace: notiflex
+  namespace: enterprise
   labels:
     app: notiflex-api
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     canary:
       # 새 버전으로 가는 트래픽을 받는 서비스 (Blue/Green의 preview를 재사용한다)
@@ -54,6 +54,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            # 이 인스턴스가 담당하는 고객 등급
+            - name: NOTIFLEX_TIER
+              value: enterprise
+            # Valkey는 notiflex 네임스페이스에 있으므로 전체 DNS 이름으로 접근한다.
             - name: VALKEY_ADDR
               value: valkey-primary.notiflex.svc.cluster.local:6379
             # 비밀번호는 K8s Secret이 아니라 Secret Manager에서 마운트한 파일로 읽는다.

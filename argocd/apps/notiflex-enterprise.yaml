@@ -1,22 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: notiflex-smb
+  name: notiflex-enterprise
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   source:
     repoURL: https://github.com/gitaiops/notiflex-platform.git
     targetRevision: main
-    path: k8s/smb
+    path: k8s/enterprise
   destination:
     server: https://kubernetes.default.svc
-    namespace: notiflex
+    namespace: enterprise
   syncPolicy:
     automated:
-      # Git에서 사라진 리소스를 클러스터에서도 지운다.
       prune: true
-      # 클러스터를 직접 수정해도 Git 상태로 되돌린다.
       selfHeal: true
     syncOptions:
+      # enterprise 네임스페이스는 ArgoCD가 sync 시점에 만든다.
       - CreateNamespace=true

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/gitaiops/notiflex-platform.git
+    targetRevision: main
+    # argocd/apps 안의 Application 정의만 감시한다.
+    # argocd/ 직속에 root-app.yaml만 두어 자기 자신을 다시 sync하지 않게 한다.
+    path: argocd/apps
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
