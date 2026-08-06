@@ -32,11 +32,11 @@
 | ch8 | 8.1 메시징 | ✅ | 2026-08-06 | Strimzi 1.1.0 + Kafka 4.3.0(KRaft), Producer/Consumer 확인 |
 | ch8 | 8.2 트레이싱 | ✅ | 2026-08-06 | Tempo + OTel, GET /id 트레이스에 하위 span 2개 확인 |
 | ch8 | 8.3 CronJob | ✅ | 2026-08-06 | 5분 주기 헬스체크, ops-pool 배치 |
-| ch9 | 9.1 저장소 분석 | ⬜ | | |
-| ch9 | 9.2 회고 | ⬜ | | |
-| ch9 | 9.3 온보딩 문서 | ⬜ | | |
-| ch9 | 9.4 GitAIOps 분석 | ⬜ | | |
-| ch9 | 9.5 마무리 | ⬜ | | |
+| ch9 | 9.1 저장소 분석 | ✅ | 2026-08-06 | 커밋 36, 파일 44, Go 397줄, YAML 958줄, 문서 588줄 |
+| ch9 | 9.2 회고 | ✅ | 2026-08-06 | docs/retrospective.md |
+| ch9 | 9.3 온보딩 문서 | ✅ | 2026-08-06 | docs/onboarding.md, README.md |
+| ch9 | 9.4 GitAIOps 분석 | ✅ | 2026-08-06 | 회고 문서의 "Git, AI, Ops가 만나는 지점" |
+| ch9 | 9.5 마무리 | ✅ | 2026-08-06 | 회고 문서의 "다음에 할 만한 것" |
 
 ## 도구 선택 기록
 
@@ -75,6 +75,7 @@
 | Fluent Bit | v2.1.0 (chart 2.6.0) | ch4.3 설치 |
 | Kafka | 4.3.0 (Strimzi 1.1.0) | ch8.1 설치, KRaft 단일 노드 |
 | Tempo | grafana/tempo (단일 바이너리) | ch8.2 설치, ops-pool |
+| Argo Rollouts | v1.9 계열 | ch5.3 설치 |
 | OTel SDK | v1.45.0 | ch8.2 추가 |
 | IBM/sarama | v1.60.1 | ch8.1 추가 |
 | valkey-go | v1.0.73 | ch6.1 추가 |
@@ -109,3 +110,4 @@
 | ch8 | 가드레일이 적은 Strimzi 0.51 / Kafka 4.1.0 조합이 설치되지 않음 | 차트가 1.1.0으로 올라가 Kafka 4.2~4.3만 지원한다. 지원 목록은 `kubectl get deploy strimzi-cluster-operator -n kafka -o jsonpath='{...STRIMZI_KAFKA_IMAGES...}'`로 확인한다. 4.3.0과 metadataVersion 4.3-IV0을 썼다 |
 | ch8 | Strimzi 1.x는 KafkaNodePool이 필수 | v1 API에서 `spec.kafka.replicas`와 `spec.kafka.resources`가 사라졌다. replicas, storage, resources는 KafkaNodePool에 쓰고 Kafka에는 `strimzi.io/node-pools: enabled` 어노테이션을 단다 |
 | ch8 | Grafana 데이터소스 기본값 충돌 | Loki와 Tempo 데이터소스를 직접 ConfigMap으로 등록하면서 둘 다 `isDefault: false`로 고정했다. 기본값이 두 개면 Grafana가 기동에 실패한다 |
+| ch8 | Strimzi 매니페스트가 계속 OutOfSync | Strimzi의 pod 템플릿은 `nodeSelector`를 받지 않는다. 지정하면 API 서버가 값을 잘라내 ArgoCD가 영구 OutOfSync로 본다. `affinity.nodeAffinity`로 바꾼다. CRD 스키마는 `kubectl get crd <name> -o json | jq '...template.properties.pod.properties'`로 확인한다 |
