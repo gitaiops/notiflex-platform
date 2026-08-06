@@ -21,8 +21,19 @@ var counter atomic.Uint64
 // podName은 응답이 어느 Pod에서 나왔는지 구분하기 위해 사용한다.
 var podName = hostname()
 
+// tier는 이 인스턴스가 어느 고객 등급을 담당하는지 나타낸다.
+// SMB와 Enterprise를 별도 네임스페이스에서 운영한다.
+var tier = envOr("NOTIFLEX_TIER", "smb")
+
 // version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.2.0"
+var version = "0.3.0"
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 func hostname() string {
 	if h := os.Getenv("POD_NAME"); h != "" {
@@ -88,6 +99,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		"status":  "ok",
 		"pod":     podName,
 		"version": version,
+		"tier":    tier,
 	})
 }
 
@@ -95,6 +107,7 @@ func handleID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{
 		"id":           strconv.FormatUint(counter.Add(1), 10),
 		"generated_by": podName,
+		"tier":         tier,
 	})
 }
 
