@@ -18,9 +18,6 @@ var counter atomic.Uint64
 // podName은 응답이 어느 Pod에서 나왔는지 구분하기 위해 사용한다.
 var podName = hostname()
 
-// version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.1.1"
-
 func hostname() string {
 	if h := os.Getenv("POD_NAME"); h != "" {
 		return h
@@ -53,18 +50,10 @@ func handleID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func handleVersion(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]string{
-		"version": version,
-		"pod":     podName,
-	})
-}
-
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handleHealth)
 	mux.HandleFunc("GET /id", handleID)
-	mux.HandleFunc("GET /version", handleVersion)
 
 	addr := ":8080"
 	log.Printf("Notiflex API 시작: %s (pod=%s)", addr, podName)
