@@ -34,9 +34,16 @@ Notiflex가 대신 처리한다. 고객 등급을 SMB와 Enterprise로 나누어
 ```
 app/          # Notiflex API (Go, net/http)
 k8s/smb/      # SMB 티어 매니페스트
+argocd/       # ArgoCD Application 정의
 .github/      # CI 파이프라인
 JOURNEY.md    # 챕터별 진행 이력 + 도구 선택 기록
 ```
+
+## 배포 원칙
+
+- 매니페스트 변경은 Git 커밋과 push를 거쳐 ArgoCD가 반영한다. `kubectl apply`로 직접 바꾸지 않는다.
+- 이미지 태그는 CI가 `sha-<커밋 앞 7자리>`로 갱신한다. 손으로 올릴 때는 `vMAJOR.MINOR.PATCH`를 쓴다.
+- 이미 올린 태그는 덮어쓰지 않는다.
 
 ## 행동 규칙
 
