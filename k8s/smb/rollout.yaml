@@ -24,6 +24,16 @@ spec:
       labels:
         app: notiflex-api
     spec:
+      # Workload Identity로 GCP Secret Manager에 접근한다.
+      serviceAccountName: notiflex-api
+      volumes:
+        - name: secrets
+          csi:
+            # GKE managed CSI 드라이버. 오픈소스는 secrets-store.csi.k8s.io다.
+            driver: secrets-store-gke.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: notiflex-secrets
       containers:
         - name: api
           image: asia-northeast3-docker.pkg.dev/project-9d5c279f-44bf-42c9-af2/notiflex/api:sha-34dfd4f
@@ -38,11 +48,13 @@ spec:
                   fieldPath: metadata.name
             - name: VALKEY_ADDR
               value: valkey-primary.notiflex.svc.cluster.local:6379
-            - name: VALKEY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: valkey
-                  key: valkey-password
+            # 비밀번호는 K8s Secret이 아니라 Secret Manager에서 마운트한 파일로 읽는다.
+            - name: VALKEY_PASSWORD_FILE
+              value: /mnt/secrets/valkey-password
+          volumeMounts:
+            - name: secrets
+              mountPath: /mnt/secrets
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /health
