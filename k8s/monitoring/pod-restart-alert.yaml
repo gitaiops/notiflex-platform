@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pod-restart-alert
+  namespace: monitoring
+  labels:
+    # Helm release 이름과 같아야 Prometheus가 이 규칙을 읽는다.
+    release: kube-prometheus
+spec:
+  groups:
+    - name: notiflex-alerts
+      rules:
+        - alert: PodRestartTooMany
+          expr: increase(kube_pod_container_status_restarts_total{namespace="notiflex"}[5m]) > 2
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} 재시작 과다"
+            description: "5분 내 {{ $value }}회 재시작"
+
+        - alert: NotiflexApiDown
+          expr: up{job="notiflex-api"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Notiflex API 수집 실패 ({{ $labels.pod }})"
+            description: "2분 동안 메트릭을 가져오지 못했다"

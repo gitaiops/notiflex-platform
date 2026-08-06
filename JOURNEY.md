@@ -16,9 +16,9 @@
 | ch3 | 3.3 기능 추가 | ✅ | 2026-08-06 | /version 추가 v0.1.1, 롤링 업데이트·롤백·복원 확인 |
 | ch3 | 3.4 CI | ✅ | 2026-08-06 | GitHub Actions + WIF 키리스 인증, 빌드 59초 |
 | ch3 | 3.5 CI-CD 연결 | ✅ | 2026-08-06 | push → 빌드 → 태그 갱신 → ArgoCD 배포까지 확인 |
-| ch4 | 4.2 메트릭 모니터링 | ⬜ | | |
-| ch4 | 4.3 로그 수집 | ⬜ | | |
-| ch4 | 4.4 알림 | ⬜ | | |
+| ch4 | 4.2 메트릭 모니터링 | ✅ | 2026-08-06 | kube-prometheus-stack, /metrics + ServiceMonitor, Notiflex 대시보드 |
+| ch4 | 4.3 로그 수집 | ✅ | 2026-08-06 | Loki(SingleBinary) + Fluent Bit, Grafana에서 notiflex 로그 조회 확인 |
+| ch4 | 4.4 알림 | ✅ | 2026-08-06 | PrometheusRule 2건, Alertmanager 수신 확인 |
 | ch5 | 5.2 트래픽 관리 | ⬜ | | |
 | ch5 | 5.3 무중단 배포 | ⬜ | | |
 | ch6 | 6.1 캐시 | ⬜ | | |
@@ -44,14 +44,20 @@
 |------|------|-----------|----------|
 | GitOps 도구 (ch3.2) | ArgoCD | Flux, Jenkins X, Spinnaker | Git이 단일 진실 공급원이 되고 selfHeal·prune으로 드리프트를 자동 교정한다. Web UI로 동기화 상태를 눈으로 확인할 수 있어 학습에 유리하다. ch7의 App of Apps로 확장하기 좋다 |
 | CI 도구 (ch3.4) | GitHub Actions + Workload Identity Federation | Jenkins, GitLab CI, Cloud Build 직접 호출 | 저장소와 같은 플랫폼이라 별도 CI 인프라가 필요 없다. WIF로 장기 서비스 계정 키를 만들지 않는다(공개 저장소라 특히 중요). `app/**` 경로 트리거로 코드가 바뀔 때만 빌드한다 |
+| 메트릭 (ch4.2) | Prometheus + Grafana (kube-prometheus-stack) | Datadog, New Relic, Cloud Monitoring | 오픈소스라 벤더 종속이 없다. Helm 차트 하나로 Operator, kube-state-metrics, Alertmanager가 함께 구성된다. ServiceMonitor로 수집 대상을 매니페스트로 관리한다. 메트릭·로그·트레이스를 Grafana 한 화면에서 본다 |
+| 로그 (ch4.3) | Loki + Fluent Bit | ELK(Elasticsearch), Cloud Logging | 전문 색인 대신 라벨 색인이라 e2-medium 노드에서 감당할 수 있다. Grafana 데이터소스로 붙어 메트릭과 같은 UI에서 조회한다. Fluent Bit는 DaemonSet으로 노드 로그를 낮은 부담으로 보낸다 |
+| 알림 (ch4.4) | PrometheusRule + Alertmanager | Grafana Alerting, PagerDuty, Cloud Monitoring Alert | 규칙이 YAML로 Git에 남아 리뷰와 `git blame`이 된다. Grafana UI 알림은 Grafana 데이터베이스에만 남아 클러스터를 다시 만들면 사라진다. Alertmanager는 4.2에서 이미 설치돼 추가 비용이 없다 |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2에서 1.25로 시작 (OTel SDK 요구 사항 대비) |
-| Notiflex 이미지 | sha-bc504f7 (코드 버전 0.1.1) | ch2 v0.1.0 → ch3.3 v0.1.1 → ch3.5부터 CI가 SHA 태그로 갱신 |
+| Notiflex 이미지 | sha-e66e7c6 (코드 버전 0.2.0) | ch2 v0.1.0 → ch3.3 v0.1.1 → ch3.5부터 CI가 SHA 태그로 갱신 → ch4.2 /metrics 추가로 0.2.0 |
 | ArgoCD | v3.5.0 | ch3.2 설치 (stable 매니페스트) |
+| kube-prometheus-stack | Prometheus v3.13.2, Grafana 13.1.2 | ch4.2 설치 |
+| Loki | 3.6.11 (chart 7.2.0) | ch4.3 설치, SingleBinary |
+| Fluent Bit | v2.1.0 (chart 2.6.0) | ch4.3 설치 |
 | Kafka | | |
 | OTel SDK | | |
 
@@ -70,3 +76,6 @@
 | ch2 | 같은 태그(v0.1.0)로 이미지를 다시 빌드했더니 Pod이 이전 코드로 동작 | `imagePullPolicy`가 기본값 `IfNotPresent`라 노드 캐시를 사용한다. 일시적으로 `Always`로 패치해 새로 받은 뒤 패치를 되돌렸다. 태그는 덮어쓰지 않는 것이 원칙 |
 | ch3 | CI가 매니페스트를 push할 때 403 | 조직(gitaiops) 설정에서 워크플로 쓰기 권한이 꺼져 있었다. Settings > Actions > General > Workflow permissions를 "Read and write"로 바꾸면 해결된다. 저장소 설정만으로는 안 되고 조직 설정이 먼저다 |
 | ch3 | ArgoCD 자동 동기화가 push 직후 바로 반영되지 않음 | 기본 재조정 주기가 3분이라 최대 3분까지 기다린다. 급하면 `argocd app sync` 또는 UI의 Refresh를 쓴다 |
+| ch4 | Loki가 `mkdir /var/loki: read-only file system`으로 CrashLoopBackOff | `singleBinary.persistence.enabled: false`로 두면 `/var/loki` 볼륨이 생기지 않는데 루트 파일시스템은 읽기 전용이다. `extraVolumes`/`extraVolumeMounts`로 emptyDir을 직접 붙인다 |
+| ch4 | TargetDown 알림이 계속 발생 (coredns) | GKE는 kube-dns를 쓰고 9153 포트를 열지 않는다. `coreDns.enabled: false`로 수집 대상에서 제외한다 |
+| ch4 | KubeCPUOvercommit 알림 발생 | e2-medium 2노드의 실제 allocatable은 노드당 949m(합계 1880m)으로, 책 예산표의 3200m보다 작다. ch6 진입 전 관측 스택 requests를 줄이고 ch7에서 노드풀을 늘려 해소한다 |

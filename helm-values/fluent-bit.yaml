@@ -1,0 +1,14 @@
+# 노드마다 하나씩 떠서 컨테이너 로그를 읽어 Loki로 보낸다.
+loki:
+  serviceName: loki.monitoring.svc.cluster.local
+  servicePort: 3100
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+tolerations:
+  - operator: Exists

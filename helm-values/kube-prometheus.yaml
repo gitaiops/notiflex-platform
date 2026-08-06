@@ -55,6 +55,9 @@ prometheus-node-exporter:
       memory: 32Mi
 
 # GKE는 컨트롤 플레인을 사용자에게 노출하지 않으므로 해당 수집 대상을 끈다.
+# coreDns도 끈다. GKE는 kube-dns를 쓰고 9153 포트를 열지 않아 수집이 계속 실패한다.
+coreDns:
+  enabled: false
 kubeApiServer:
   enabled: true
 kubeControllerManager:

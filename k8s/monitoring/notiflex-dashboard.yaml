@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notiflex-dashboard
+  namespace: monitoring
+  labels:
+    # Grafana 사이드카가 이 라벨을 보고 대시보드를 자동 등록한다.
+    grafana_dashboard: "1"
+data:
+  notiflex.json: |
+    {
+      "title": "Notiflex API",
+      "uid": "notiflex-api",
+      "timezone": "browser",
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "요청 수 (초당, 경로별)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum by (path) (rate(notiflex_http_requests_total[5m]))",
+              "legendFormat": "{{path}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "발급한 ID 누적 (Pod별)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "notiflex_ids_generated_total",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "CPU 사용량 (Pod별, core)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"notiflex\",container=\"api\"}[5m]))",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "메모리 사용량 (Pod별, bytes)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"notiflex\",container=\"api\"})",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Pod 재시작 횟수",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"notiflex\"})",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        }
+      ]
+    }

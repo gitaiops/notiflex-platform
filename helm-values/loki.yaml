@@ -1,0 +1,68 @@
+# e2-medium 노드에 맞춘 최소 구성. 단일 바이너리로 돌린다.
+deploymentMode: SingleBinary
+
+loki:
+  # schema_config를 자동 생성한다. 없으면 기동 즉시 CrashLoopBackOff에 빠진다.
+  useTestSchema: true
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+    bucketNames:
+      chunks: chunks
+      ruler: ruler
+      admin: admin
+  limits_config:
+    retention_period: 24h
+
+singleBinary:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  persistence:
+    enabled: false
+  # persistence를 끄면 /var/loki 볼륨이 생기지 않는데 루트 파일시스템이
+  # 읽기 전용이라 기동에 실패한다. emptyDir을 직접 붙인다.
+  extraVolumes:
+    - name: data
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: data
+      mountPath: /var/loki
+
+# SingleBinary 모드에서는 나머지 구성 요소를 쓰지 않는다.
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+lokiCanary:
+  enabled: false
+
+test:
+  enabled: false
+
+gateway:
+  enabled: false
+
+# Prometheus가 이미 기본 데이터소스다. 여기서 true면 Grafana가
+# "multiple datasources marked as default"로 실패한다.
+monitoring:
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+  lokiCanary:
+    enabled: false

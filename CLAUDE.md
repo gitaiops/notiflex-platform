@@ -34,7 +34,9 @@ Notiflex가 대신 처리한다. 고객 등급을 SMB와 Enterprise로 나누어
 ```
 app/          # Notiflex API (Go, net/http)
 k8s/smb/      # SMB 티어 매니페스트
+k8s/monitoring/ # 대시보드, 데이터소스, 알림 규칙
 argocd/       # ArgoCD Application 정의
+helm-values/  # 서드파티 차트 values (버전·값 고정)
 .github/      # CI 파이프라인
 JOURNEY.md    # 챕터별 진행 이력 + 도구 선택 기록
 ```
