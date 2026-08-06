@@ -17,7 +17,8 @@ jobs:
     permissions:
       # WIF로 GCP에 인증하려면 OIDC 토큰 발급 권한이 필요하다.
       id-token: write
-      contents: read
+      # 매니페스트의 이미지 태그를 고쳐 되돌려 push하려면 쓰기 권한이 필요하다.
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -38,3 +39,24 @@ jobs:
           echo "빌드 대상: $IMAGE"
           docker build -t "$IMAGE" app/
           docker push "$IMAGE"
+          # 다음 step에서 쓰려면 GITHUB_OUTPUT이 아니라 GITHUB_ENV로 넘겨야 한다.
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: 매니페스트 이미지 태그 갱신 후 push
+        run: |
+          # 빈 값이면 매니페스트의 이미지가 지워지므로 먼저 확인한다.
+          if [ -z "$IMAGE" ]; then
+            echo "IMAGE 변수가 비어 있다. 중단한다."
+            exit 1
+          fi
+          echo "적용할 이미지: $IMAGE"
+          sed -i "s|image: .*/notiflex/api:.*|image: ${IMAGE}|" k8s/smb/deployment.yaml
+          if git diff --quiet k8s/smb/deployment.yaml; then
+            echo "매니페스트에 변경이 없다."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add k8s/smb/deployment.yaml
+          git commit -m "ci: 이미지 태그를 sha-${GITHUB_SHA::7}로 갱신"
+          git push origin HEAD:main

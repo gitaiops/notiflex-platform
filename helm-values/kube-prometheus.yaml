@@ -1,0 +1,67 @@
+# e2-medium 2노드 환경에 맞춰 리소스를 낮춘 값이다.
+# ch6에서 CSI DaemonSet이 240m을 더 쓰므로 그 전에 한 번 더 줄인다.
+
+prometheus:
+  prometheusSpec:
+    retention: 6h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 700Mi
+    # PVC 없이 임시 볼륨을 쓴다. 학습 환경이라 장기 보관이 필요 없다.
+    storageSpec: {}
+
+grafana:
+  adminPassword: notiflex-admin
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  persistence:
+    enabled: false
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+
+kubeStateMetrics:
+  enabled: true
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+
+# GKE는 컨트롤 플레인을 사용자에게 노출하지 않으므로 해당 수집 대상을 끈다.
+kubeApiServer:
+  enabled: true
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

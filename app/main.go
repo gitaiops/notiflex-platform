@@ -41,8 +41,9 @@ func writeJSON(w http.ResponseWriter, body any) {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{
-		"status": "ok",
-		"pod":    podName,
+		"status":  "ok",
+		"pod":     podName,
+		"version": version,
 	})
 }
 
