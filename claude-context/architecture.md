@@ -1,4 +1,4 @@
-# Notiflex 아키텍처 스냅샷 (7장 완료 시점)
+# Notiflex 아키텍처 스냅샷 (8장 완료 시점)
 
 이 문서는 **지금 어떻게 동작하는가**를 한 페이지로 정리한 것이다. AI가 매 대화에서 전체 그림을
 빠르게 잡도록 돕는 것이 목적이다.
@@ -51,8 +51,12 @@
                    │     ├── CSI 볼륨 /mnt/secrets/valkey-password
                    │     │     └── Google Secret Manager: valkey-password
                    │     └── /health  /id  /version  /metrics
-                   ▼
-        [StatefulSet: valkey-primary]  ID 카운터(INCR)를 모든 Pod이 공유
+                   │
+                   ├──▶ [StatefulSet: valkey-primary]  ID 카운터(INCR)를 모든 Pod이 공유
+                   ├──▶ [Kafka: notiflex-kafka]  notifications 토픽으로 알림 이벤트 발행·구독
+                   └──▶ [Tempo]  OTLP gRPC로 트레이스 전송
+
+[CronJob: notiflex-healthcheck]  5분마다 /health 호출 (ops-pool)
 ```
 
 ## 배포 파이프라인
@@ -83,18 +87,23 @@ Argo Rollouts Canary 진행 → 100% 전환
 | Alertmanager | 알림 라우팅. PrometheusRule 2건 | `monitoring` |
 | Loki | 로그 저장 (SingleBinary) | `monitoring` |
 | Fluent Bit | 노드 로그 수집 후 Loki로 전송 (DaemonSet) | `monitoring` |
+| Tempo | 트레이스 저장. OTLP gRPC 4317 수신 (ops-pool) | `monitoring` |
 
 앱이 내보내는 지표: `notiflex_http_requests_total{path,pod}`, `notiflex_ids_generated_total{tier}`
+
+트레이스 span 구조: `GET /id` 아래에 `valkey.incr`와 `kafka.publish`가 붙는다.
+어느 구간에서 시간이 쓰였는지 Grafana에서 바로 갈라 볼 수 있다.
 
 ## 주요 네임스페이스
 
 | 네임스페이스 | 주요 워크로드 |
 |-------------|-------------|
-| `notiflex` | SMB 테넌트. notiflex-api(Rollout, api-pool), valkey-primary(StatefulSet), Gateway, HTTPRoute |
+| `notiflex` | SMB 테넌트. notiflex-api(Rollout, api-pool), valkey-primary(StatefulSet), Gateway, HTTPRoute, 헬스체크 CronJob |
 | `enterprise` | Enterprise 테넌트. notiflex-api(Rollout, api-pool). Valkey는 notiflex의 것을 함께 쓴다 |
 | `argocd` | ArgoCD v3.5.0 (server, repo-server, application-controller 등) |
 | `argo-rollouts` | Argo Rollouts 컨트롤러 |
-| `monitoring` | Prometheus, Grafana, Alertmanager, Loki, Fluent Bit |
+| `monitoring` | Prometheus, Grafana, Alertmanager, Loki, Fluent Bit, Tempo |
+| `kafka` | Strimzi Operator, Kafka 브로커(KRaft, worker-pool), entity-operator |
 | `kube-system` | GKE 시스템, Secret Manager CSI DaemonSet |
 
 ## ArgoCD Application
@@ -106,3 +115,25 @@ App of Apps 구조다. `root-app` 하나가 `argocd/apps/` 아래 Application들
 | `root-app` | `argocd/apps` | `argocd` | — |
 | `notiflex-smb` | `k8s/smb` | `notiflex` | 2 |
 | `notiflex-enterprise` | `k8s/enterprise` | `enterprise` | 2 |
+| `kafka` | `k8s/kafka` | `kafka` | 1 |
+
+## 이벤트 흐름
+
+```
+/id 요청 → Valkey INCR로 ID 발급 → notifications 토픽에 이벤트 발행 → 응답 반환
+                                              │
+                                              └─▶ Consumer goroutine이 구독해 처리
+```
+
+발송이 느려도 API 응답은 기다리지 않는다. 브로커 주소(`KAFKA_BROKER`)가 없으면
+이벤트 발행을 건너뛰고 나머지는 그대로 동작한다.
+
+## 위험 작업
+
+되돌릴 수 없는 작업은 `command-guardrails/`에 절차가 있다. 실행 전에 해당 문서를 먼저 읽는다.
+
+| 작업 | 문서 |
+|------|------|
+| Kafka 토픽 삭제 | `command-guardrails/kafka-topic-delete.md` |
+| CronJob 수동 실행 | `command-guardrails/cronjob-manual-run.md` |
+| 테넌트 네임스페이스 삭제 | `command-guardrails/tenant-namespace-delete.md` |
