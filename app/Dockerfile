@@ -2,7 +2,9 @@
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
-COPY go.mod ./
+# 의존성 파일을 먼저 복사해 캐시를 활용한다.
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /notiflex .
