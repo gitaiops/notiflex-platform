@@ -4,10 +4,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
+	"sync"
 	"sync/atomic"
 )
 
@@ -19,7 +22,7 @@ var counter atomic.Uint64
 var podName = hostname()
 
 // version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.1.1"
+var version = "0.2.0"
 
 func hostname() string {
 	if h := os.Getenv("POD_NAME"); h != "" {
@@ -30,6 +33,47 @@ func hostname() string {
 		return "unknown"
 	}
 	return h
+}
+
+// requestCounts는 경로별 요청 수다. Prometheus가 /metrics로 긁어간다.
+// 외부 클라이언트 라이브러리 없이 노출 형식을 직접 만든다.
+var (
+	metricsMu     sync.Mutex
+	requestCounts = map[string]uint64{}
+)
+
+// countRequest는 핸들러를 감싸 경로별 요청 수를 센다.
+func countRequest(path string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		metricsMu.Lock()
+		requestCounts[path]++
+		metricsMu.Unlock()
+		next(w, r)
+	}
+}
+
+func handleMetrics(w http.ResponseWriter, r *http.Request) {
+	metricsMu.Lock()
+	paths := make([]string, 0, len(requestCounts))
+	for p := range requestCounts {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	snapshot := make(map[string]uint64, len(requestCounts))
+	for _, p := range paths {
+		snapshot[p] = requestCounts[p]
+	}
+	metricsMu.Unlock()
+
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+	fmt.Fprintln(w, "# HELP notiflex_http_requests_total 경로별 누적 HTTP 요청 수")
+	fmt.Fprintln(w, "# TYPE notiflex_http_requests_total counter")
+	for _, p := range paths {
+		fmt.Fprintf(w, "notiflex_http_requests_total{path=%q,pod=%q} %d\n", p, podName, snapshot[p])
+	}
+	fmt.Fprintln(w, "# HELP notiflex_ids_generated_total 발급한 ID 총 개수")
+	fmt.Fprintln(w, "# TYPE notiflex_ids_generated_total counter")
+	fmt.Fprintf(w, "notiflex_ids_generated_total{pod=%q} %d\n", podName, counter.Load())
 }
 
 func writeJSON(w http.ResponseWriter, body any) {
@@ -63,9 +107,10 @@ func handleVersion(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", handleHealth)
-	mux.HandleFunc("GET /id", handleID)
-	mux.HandleFunc("GET /version", handleVersion)
+	mux.HandleFunc("GET /health", countRequest("/health", handleHealth))
+	mux.HandleFunc("GET /id", countRequest("/id", handleID))
+	mux.HandleFunc("GET /version", countRequest("/version", handleVersion))
+	mux.HandleFunc("GET /metrics", handleMetrics)
 
 	addr := ":8080"
 	log.Printf("Notiflex API 시작: %s (pod=%s)", addr, podName)

@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: notiflex-api
   namespace: notiflex
+  labels:
+    app: notiflex-api
 spec:
   type: ClusterIP
   selector:
