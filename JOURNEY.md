@@ -29,9 +29,9 @@
 | ch7 | 7.2 멀티 노드풀 | ✅ | 2026-08-06 | api/worker/ops 풀 추가, Rollout에 nodeSelector, replicas 2 복원 |
 | ch7 | 7.3 App of Apps | ✅ | 2026-08-06 | root-app이 argocd/apps/ 관리, sync-wave 지정 |
 | ch7 | 7.4 멀티테넌시 | ✅ | 2026-08-06 | enterprise 네임스페이스 분리, Valkey 카운터 공유 확인 |
-| ch8 | 8.1 메시징 | ⬜ | | |
-| ch8 | 8.2 트레이싱 | ⬜ | | |
-| ch8 | 8.3 CronJob | ⬜ | | |
+| ch8 | 8.1 메시징 | ✅ | 2026-08-06 | Strimzi 1.1.0 + Kafka 4.3.0(KRaft), Producer/Consumer 확인 |
+| ch8 | 8.2 트레이싱 | ✅ | 2026-08-06 | Tempo + OTel, GET /id 트레이스에 하위 span 2개 확인 |
+| ch8 | 8.3 CronJob | ✅ | 2026-08-06 | 5분 주기 헬스체크, ops-pool 배치 |
 | ch9 | 9.1 저장소 분석 | ⬜ | | |
 | ch9 | 9.2 회고 | ⬜ | | |
 | ch9 | 9.3 온보딩 문서 | ⬜ | | |
@@ -57,21 +57,27 @@
 | 노드 배치 (ch7.2) | 역할별 노드풀 + nodeSelector | 단일 풀 유지, Taint/Toleration, Node Affinity | 무거운 워크로드가 API의 CPU를 잠식하지 않는다. 워크로드마다 맞는 머신 타입을 쓴다. 풀 단위로 늘리고 줄일 수 있다 |
 | GitOps 구조 (ch7.3) | App of Apps (root-app + argocd/apps/) | Application 개별 관리, ApplicationSet | 새 앱을 파일 하나 커밋으로 추가한다. 배포 대상이 Git에 다 남는다. sync-wave로 설치 순서를 지정한다 |
 | 멀티테넌시 (ch7.4) | Namespace 분리 + 테넌트별 Rollout | 단일 namespace + 라벨 격리, vCluster | RBAC와 쿼터를 테넌트 단위로 건다. 테넌트별로 따로 배포하고 롤백한다. App of Apps와 자연스럽게 맞물린다 |
+| 메시징 (ch8.1) | Strimzi Kafka (KRaft) | RabbitMQ, NATS, Pulsar, Pub/Sub | 발송이 느려도 API 응답이 늦지 않는다. 메시지가 디스크에 남아 재처리가 된다. Operator가 CRD로 관리해 GitOps에 그대로 들어온다 |
+| 트레이싱 (ch8.2) | Tempo + OpenTelemetry | Jaeger, Zipkin, Cloud Trace | 어느 구간이 느린지 span으로 나눠 본다. Grafana 한 화면에서 메트릭·로그와 함께 본다. OTel은 벤더 중립이라 저장소를 바꿔도 코드를 안 고친다 |
+| 배치 자동화 (ch8.3) | Kubernetes CronJob | 클러스터 밖 cron, Argo Workflows | 매니페스트로 관리돼 ArgoCD가 함께 동기화한다. ops-pool에 몰아 API 자원을 건드리지 않는다. 한 단계 작업에 Workflows는 과하다 |
 
 ## 현재 버전
 
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2에서 1.25로 시작 (OTel SDK 요구 사항 대비) |
-| Notiflex 이미지 | sha-680b8d7 (코드 버전 0.5.0) | ch2 v0.1.0 → ch3.3 v0.1.1 → ch3.5부터 CI가 SHA 태그 → ch4.2 /metrics 0.2.0 → ch5.3 tier 0.3.0 → ch6.1 Valkey 0.4.0 → ch6.3 0.5.0 |
+| Notiflex 이미지 | sha-704d1b3 (코드 버전 0.7.0) | v0.1.0 → v0.1.1 → (CI SHA 태그) 0.2.0 /metrics → 0.3.0 tier → 0.4.0 Valkey → 0.5.0 → 0.6.0 Kafka → 0.7.0 트레이싱 |
 | ArgoCD | v3.5.0 | ch3.2 설치 (stable 매니페스트) |
 | kube-prometheus-stack | Prometheus v3.13.2, Grafana 13.1.2 | ch4.2 설치 |
 | Loki | 3.6.11 (chart 7.2.0) | ch4.3 설치, SingleBinary |
 | Argo Rollouts | latest (ch5.3 시점) | ch5.3 설치, Blue/Green → ch6.3 Canary |
 | Valkey | 9.1.1 (bitnami chart) | ch6.1 설치, standalone |
 | Fluent Bit | v2.1.0 (chart 2.6.0) | ch4.3 설치 |
-| Kafka | | |
-| OTel SDK | | |
+| Kafka | 4.3.0 (Strimzi 1.1.0) | ch8.1 설치, KRaft 단일 노드 |
+| Tempo | grafana/tempo (단일 바이너리) | ch8.2 설치, ops-pool |
+| OTel SDK | v1.45.0 | ch8.2 추가 |
+| IBM/sarama | v1.60.1 | ch8.1 추가 |
+| valkey-go | v1.0.73 | ch6.1 추가 |
 
 ## 현재 리소스
 
@@ -100,3 +106,6 @@
 | ch6 | Rollout을 지운 뒤 ArgoCD가 OutOfSync로 남음 | `kubectl annotate application notiflex-smb -n argocd argocd.argoproj.io/refresh=hard --overwrite`로 즉시 재조정한다 |
 | ch7 | 노드풀 생성 시 `Cluster is running incompatible operation` | ch6.2의 클러스터 업데이트가 아직 실행 중이면 노드풀을 만들 수 없다. `gcloud container operations list --zone=<ZONE> --filter="status=RUNNING"`이 비어 있는지 먼저 확인한다 |
 | ch7 | Pod을 api-pool로 옮긴 직후 Gateway가 `no healthy upstream` | 로드밸런서가 새 노드의 NEG를 다시 등록하는 데 1~2분 걸린다. 기다리면 복구된다 |
+| ch8 | 가드레일이 적은 Strimzi 0.51 / Kafka 4.1.0 조합이 설치되지 않음 | 차트가 1.1.0으로 올라가 Kafka 4.2~4.3만 지원한다. 지원 목록은 `kubectl get deploy strimzi-cluster-operator -n kafka -o jsonpath='{...STRIMZI_KAFKA_IMAGES...}'`로 확인한다. 4.3.0과 metadataVersion 4.3-IV0을 썼다 |
+| ch8 | Strimzi 1.x는 KafkaNodePool이 필수 | v1 API에서 `spec.kafka.replicas`와 `spec.kafka.resources`가 사라졌다. replicas, storage, resources는 KafkaNodePool에 쓰고 Kafka에는 `strimzi.io/node-pools: enabled` 어노테이션을 단다 |
+| ch8 | Grafana 데이터소스 기본값 충돌 | Loki와 Tempo 데이터소스를 직접 ConfigMap으로 등록하면서 둘 다 `isDefault: false`로 고정했다. 기본값이 두 개면 Grafana가 기동에 실패한다 |

@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: notiflex-healthcheck
+  namespace: notiflex
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  # 이전 실행이 남아 있으면 건너뛴다.
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          # 운영 도구는 ops-pool에 모은다.
+          nodeSelector:
+            cloud.google.com/gke-nodepool: ops-pool
+          containers:
+            - name: healthcheck
+              image: curlimages/curl:latest
+              command:
+                - sh
+                - -c
+                - |
+                  CODE=$(curl -s -o /tmp/body -w '%{http_code}' \
+                    http://notiflex-api.notiflex.svc.cluster.local/health)
+                  if [ "$CODE" = "200" ]; then
+                    echo "정상 ($CODE): $(cat /tmp/body)"
+                  else
+                    echo "실패 ($CODE): $(cat /tmp/body)"
+                    exit 1
+                  fi
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 50m
+                  memory: 32Mi
