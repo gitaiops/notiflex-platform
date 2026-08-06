@@ -22,8 +22,16 @@ spec:
       memory: 1536Mi
   template:
     pod:
-      nodeSelector:
-        cloud.google.com/gke-nodepool: worker-pool
+      # Strimzi의 pod 템플릿은 nodeSelector를 받지 않는다. affinity로 지정한다.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: cloud.google.com/gke-nodepool
+                    operator: In
+                    values:
+                      - worker-pool
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: Kafka
