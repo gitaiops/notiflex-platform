@@ -82,5 +82,5 @@
 | ch3 | ArgoCD 자동 동기화가 push 직후 바로 반영되지 않음 | 기본 재조정 주기가 3분이라 최대 3분까지 기다린다. 급하면 `argocd app sync` 또는 UI의 Refresh를 쓴다 |
 | ch4 | Loki가 `mkdir /var/loki: read-only file system`으로 CrashLoopBackOff | `singleBinary.persistence.enabled: false`로 두면 `/var/loki` 볼륨이 생기지 않는데 루트 파일시스템은 읽기 전용이다. `extraVolumes`/`extraVolumeMounts`로 emptyDir을 직접 붙인다 |
 | ch4 | TargetDown 알림이 계속 발생 (coredns) | GKE는 kube-dns를 쓰고 9153 포트를 열지 않는다. `coreDns.enabled: false`로 수집 대상에서 제외한다 |
-| ch5 | Gateway가 `An active proxy-only subnetwork is required`로 IP를 못 받음 | 리전 외부 Gateway는 proxy-only 서브넷이 필요한데 자동 생성되지 않는다. `gcloud compute networks subnets create proxy-only-subnet --purpose=REGIONAL_MANAGED_PROXY --role=ACTIVE --region=asia-northeast3 --network=default --range=172.16.0.0/23`로 만든다 |
 | ch4 | KubeCPUOvercommit 알림 발생 | e2-medium 2노드의 실제 allocatable은 노드당 949m(합계 1880m)으로, 책 예산표의 3200m보다 작다. ch6 진입 전 관측 스택 requests를 줄이고 ch7에서 노드풀을 늘려 해소한다 |
+| ch5 | Gateway가 `An active proxy-only subnetwork is required`로 IP를 못 받음 | 리전 외부 Gateway는 proxy-only 서브넷이 필요한데 자동 생성되지 않는다. `gcloud compute networks subnets create proxy-only-subnet --purpose=REGIONAL_MANAGED_PROXY --role=ACTIVE --region=asia-northeast3 --network=default --range=172.16.0.0/23`로 만든다 |
