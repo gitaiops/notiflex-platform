@@ -67,7 +67,7 @@
     ▼
 GitHub Actions (WIF 키리스 인증)
     ├── docker build → Artifact Registry: notiflex/api:sha-<7자리>
-    └── k8s/smb/rollout.yaml 태그 갱신 후 git push
+    └── k8s/smb/rollout.yaml과 k8s/enterprise/rollout.yaml 태그 갱신 후 git push
     │
     ▼
 ArgoCD (auto-sync, prune, selfHeal, 재조정 주기 3분)

@@ -66,7 +66,7 @@
 | 컴포넌트 | 버전 | 변경 이력 |
 |---------|------|----------|
 | Go | 1.25 | ch2에서 1.25로 시작 (OTel SDK 요구 사항 대비) |
-| Notiflex 이미지 | sha-704d1b3 (코드 버전 0.7.0) | v0.1.0 → v0.1.1 → (CI SHA 태그) 0.2.0 /metrics → 0.3.0 tier → 0.4.0 Valkey → 0.5.0 → 0.6.0 Kafka → 0.7.0 트레이싱 |
+| Notiflex 이미지 | sha-2e7c43e (코드 버전 0.7.1) | v0.1.0 → v0.1.1 → (CI SHA 태그) 0.2.0 /metrics → 0.3.0 tier → 0.4.0 Valkey → 0.5.0 → 0.6.0 Kafka → 0.7.0 트레이싱 → 0.7.1 |
 | ArgoCD | v3.5.0 | ch3.2 설치 (stable 매니페스트) |
 | kube-prometheus-stack | Prometheus v3.13.2, Grafana 13.1.2 | ch4.2 설치 |
 | Loki | 3.6.11 (chart 7.2.0) | ch4.3 설치, SingleBinary |
@@ -111,3 +111,4 @@
 | ch8 | Strimzi 1.x는 KafkaNodePool이 필수 | v1 API에서 `spec.kafka.replicas`와 `spec.kafka.resources`가 사라졌다. replicas, storage, resources는 KafkaNodePool에 쓰고 Kafka에는 `strimzi.io/node-pools: enabled` 어노테이션을 단다 |
 | ch8 | Grafana 데이터소스 기본값 충돌 | Loki와 Tempo 데이터소스를 직접 ConfigMap으로 등록하면서 둘 다 `isDefault: false`로 고정했다. 기본값이 두 개면 Grafana가 기동에 실패한다 |
 | ch8 | Strimzi 매니페스트가 계속 OutOfSync | Strimzi의 pod 템플릿은 `nodeSelector`를 받지 않는다. 지정하면 API 서버가 값을 잘라내 ArgoCD가 영구 OutOfSync로 본다. `affinity.nodeAffinity`로 바꾼다. CRD 스키마는 `kubectl get crd <name> -o json | jq '...template.properties.pod.properties'`로 확인한다 |
+| ch9 | CI가 SMB 매니페스트만 갱신해 두 테넌트의 이미지가 어긋남 | `ci.yaml`의 sed 대상이 `k8s/smb/rollout.yaml` 하나였다. `TARGETS` 변수로 enterprise까지 포함하도록 고쳤다. 테넌트를 추가하면 이 목록도 함께 늘려야 한다 |
