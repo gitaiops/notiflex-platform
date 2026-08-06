@@ -84,3 +84,27 @@
 - 각 단계에 30초 관찰 시간을 둬서 메트릭과 로그로 이상을 확인할 창을 만든다
 - 5장에서 만든 preview 서비스를 `canaryService`로 그대로 재사용하므로 추가 인프라가 없다
 - 전략만 바꾸면 되고 Rollout 리소스와 GitOps 흐름은 그대로다
+
+## ADR-011: 역할별 노드풀 분리 채택 (7장)
+**시점**: 2026-08 / **결정**: 워크로드 성격에 따라 노드풀을 `api-pool`, `worker-pool`, `ops-pool`로 나누고 `nodeSelector`로 배치한다. 모든 워크로드를 한 풀에 섞지 않는다.
+**이유**:
+- 한 풀에 다 올리면 무거운 워크로드(Kafka)가 API Pod의 CPU를 잠식한다. 실제로 6장에서 노드 CPU가 100%에 닿아 Valkey가 Pending에 걸렸다
+- 워크로드마다 필요한 머신이 다르다. API는 e2-medium, Kafka는 e2-standard-2, 운영 도구는 e2-small로 각각 맞춘다
+- 풀 단위로 늘리고 줄일 수 있어 비용을 필요한 곳에만 쓴다
+- `nodeSelector` 키는 GKE가 자동으로 붙이는 `cloud.google.com/gke-nodepool`만 쓴다. 커스텀 라벨을 만들면 어떤 키를 써야 하는지 헷갈려 Pod이 영구 Pending에 빠지기 쉽다
+
+## ADR-012: GitOps 구조로 App of Apps 채택 (7장)
+**시점**: 2026-08 / **결정**: `argocd/root-app.yaml` 하나가 `argocd/apps/` 아래의 Application들을 관리하게 한다. Application을 사람이 하나씩 `kubectl apply`하지 않는다.
+**이유**:
+- 새 테넌트나 컴포넌트를 추가할 때 `argocd/apps/`에 파일 하나를 커밋하면 끝난다. 클러스터에 손대지 않는다
+- Application 정의 자체가 Git에 남아 무엇이 배포 대상인지 저장소만 봐도 알 수 있다
+- `sync-wave`로 인프라(0), 플랫폼(1), 애플리케이션(2) 순서를 정해 의존성이 깨지지 않게 한다
+- `argocd/` 직속에는 root-app만 두어 루트가 자기 자신을 다시 동기화하는 순환을 피한다
+
+## ADR-013: 멀티테넌시로 Namespace 분리 + 테넌트별 Rollout 채택 (7장)
+**시점**: 2026-08 / **결정**: 고객 등급별로 네임스페이스를 나누고(`notiflex`=SMB, `enterprise`) 각각 별도 Rollout을 둔다. 한 네임스페이스에서 라벨로만 구분하지 않는다.
+**이유**:
+- 네임스페이스가 나뉘면 RBAC, ResourceQuota, NetworkPolicy를 테넌트 단위로 걸 수 있다. 라벨 구분은 이런 경계를 만들지 못한다
+- 테넌트별로 따로 배포하고 롤백한다. 한쪽 배포가 잘못돼도 다른 쪽은 영향받지 않는다
+- App of Apps와 자연스럽게 맞물린다. 테넌트를 추가하려면 Application 파일 하나와 매니페스트 디렉터리 하나를 더하면 된다
+- vCluster처럼 테넌트마다 컨트롤 플레인을 띄우는 방식은 이 규모에 과하고 노드 자원을 크게 쓴다

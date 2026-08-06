@@ -1,4 +1,4 @@
-# Notiflex 아키텍처 스냅샷 (6장 완료 시점)
+# Notiflex 아키텍처 스냅샷 (7장 완료 시점)
 
 이 문서는 **지금 어떻게 동작하는가**를 한 페이지로 정리한 것이다. AI가 매 대화에서 전체 그림을
 빠르게 잡도록 돕는 것이 목적이다.
@@ -23,7 +23,7 @@
 | 클러스터 | `notiflex-cluster` (GKE Standard, Zonal) |
 | 버전 | 1.35.6-gke.1250000 |
 | 리전 / 존 | asia-northeast3 / asia-northeast3-a |
-| 노드풀 | `default-pool` — e2-medium Spot 2대 |
+| 노드풀 | `default-pool` e2-medium×2, `api-pool` e2-medium×1, `worker-pool` e2-standard-2×1, `ops-pool` e2-small×1 (모두 Spot) |
 | kubectl 컨텍스트 | `gke-sysnet4admin_book_gitaiops` |
 | Gateway API | CHANNEL_STANDARD |
 | Workload Identity | `project-9d5c279f-44bf-42c9-af2.svc.id.goog` |
@@ -44,7 +44,7 @@
     │                                          │
     └──────────────┬───────────────────────────┘
                    ▼
-        [Rollout: notiflex-api]  Canary 20 → 50 → 80 → 100%
+        [Rollout: notiflex-api]  Canary 20 → 50 → 80 → 100%   (api-pool에 배치)
                    │
                    ├── Pod: api (Go, scratch)
                    │     ├── ServiceAccount: notiflex-api (Workload Identity)
@@ -90,7 +90,8 @@ Argo Rollouts Canary 진행 → 100% 전환
 
 | 네임스페이스 | 주요 워크로드 |
 |-------------|-------------|
-| `notiflex` | notiflex-api(Rollout), valkey-primary(StatefulSet), Gateway, HTTPRoute |
+| `notiflex` | SMB 테넌트. notiflex-api(Rollout, api-pool), valkey-primary(StatefulSet), Gateway, HTTPRoute |
+| `enterprise` | Enterprise 테넌트. notiflex-api(Rollout, api-pool). Valkey는 notiflex의 것을 함께 쓴다 |
 | `argocd` | ArgoCD v3.5.0 (server, repo-server, application-controller 등) |
 | `argo-rollouts` | Argo Rollouts 컨트롤러 |
 | `monitoring` | Prometheus, Grafana, Alertmanager, Loki, Fluent Bit |
@@ -98,6 +99,10 @@ Argo Rollouts Canary 진행 → 100% 전환
 
 ## ArgoCD Application
 
-| 이름 | 감시 경로 | 대상 네임스페이스 |
-|------|----------|-----------------|
-| `notiflex-smb` | `k8s/smb` | `notiflex` |
+App of Apps 구조다. `root-app` 하나가 `argocd/apps/` 아래 Application들을 관리한다.
+
+| 이름 | 감시 경로 | 대상 네임스페이스 | sync-wave |
+|------|----------|-----------------|-----------|
+| `root-app` | `argocd/apps` | `argocd` | — |
+| `notiflex-smb` | `k8s/smb` | `notiflex` | 2 |
+| `notiflex-enterprise` | `k8s/enterprise` | `enterprise` | 2 |

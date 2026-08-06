@@ -26,9 +26,9 @@
 | ch6 | 6.2 시크릿 관리 | ✅ | 2026-08-06 | Secret Manager CSI + Workload Identity, 키 파일 없음 |
 | ch6 | 6.3 Canary 전환 | ✅ | 2026-08-06 | 20/50/80/100% 단계 진행 확인 |
 | ch6 | 6.4 아키텍처 스냅샷 | ✅ | 2026-08-06 | claude-context/architecture.md 신설 |
-| ch7 | 7.2 멀티 노드풀 | ⬜ | | |
-| ch7 | 7.3 App of Apps | ⬜ | | |
-| ch7 | 7.4 멀티테넌시 | ⬜ | | |
+| ch7 | 7.2 멀티 노드풀 | ✅ | 2026-08-06 | api/worker/ops 풀 추가, Rollout에 nodeSelector, replicas 2 복원 |
+| ch7 | 7.3 App of Apps | ✅ | 2026-08-06 | root-app이 argocd/apps/ 관리, sync-wave 지정 |
+| ch7 | 7.4 멀티테넌시 | ✅ | 2026-08-06 | enterprise 네임스페이스 분리, Valkey 카운터 공유 확인 |
 | ch8 | 8.1 메시징 | ⬜ | | |
 | ch8 | 8.2 트레이싱 | ⬜ | | |
 | ch8 | 8.3 CronJob | ⬜ | | |
@@ -54,6 +54,9 @@
 | 캐시·분산 카운터 (ch6.1) | Valkey (standalone) | Redis, Memcached, 인메모리 유지 | INCR가 원자적이라 여러 Pod이 같은 카운터를 안전하게 공유한다. Redis 프로토콜 호환이라 지식이 그대로 통한다. 라이선스 위험이 없다 |
 | 시크릿 관리 (ch6.2) | Google Secret Manager + GKE CSI + Workload Identity | K8s Secret 직접 사용, HashiCorp Vault, Sealed Secrets | 키 파일 없이 접근한다. K8s Secret은 base64일 뿐 암호화가 아니다. 매니페스트에 값이 없어 공개 저장소에도 안전하다 |
 | 배포 전략 전환 (ch6.3) | Argo Rollouts Canary (20/50/80%) | Blue/Green 유지, 수동 전환 | 문제가 있어도 처음엔 20%만 노출된다. 단계마다 30초 관찰 창을 둔다. preview 서비스를 재사용해 추가 인프라가 없다 |
+| 노드 배치 (ch7.2) | 역할별 노드풀 + nodeSelector | 단일 풀 유지, Taint/Toleration, Node Affinity | 무거운 워크로드가 API의 CPU를 잠식하지 않는다. 워크로드마다 맞는 머신 타입을 쓴다. 풀 단위로 늘리고 줄일 수 있다 |
+| GitOps 구조 (ch7.3) | App of Apps (root-app + argocd/apps/) | Application 개별 관리, ApplicationSet | 새 앱을 파일 하나 커밋으로 추가한다. 배포 대상이 Git에 다 남는다. sync-wave로 설치 순서를 지정한다 |
+| 멀티테넌시 (ch7.4) | Namespace 분리 + 테넌트별 Rollout | 단일 namespace + 라벨 격리, vCluster | RBAC와 쿼터를 테넌트 단위로 건다. 테넌트별로 따로 배포하고 롤백한다. App of Apps와 자연스럽게 맞물린다 |
 
 ## 현재 버전
 
@@ -74,7 +77,10 @@
 
 | 노드풀 | 머신 타입 | 노드 수 | 주요 워크로드 |
 |--------|----------|---------|-------------|
-| default-pool | e2-medium (Spot) | 2 | notiflex-api |
+| default-pool | e2-medium (Spot) | 2 | ArgoCD, 관측 스택, Valkey |
+| api-pool | e2-medium (Spot) | 1 | notiflex-api (SMB, Enterprise) |
+| worker-pool | e2-standard-2 (Spot) | 1 | Kafka (ch8) |
+| ops-pool | e2-small (Spot) | 1 | Tempo, CronJob (ch8) |
 
 ## 트러블슈팅 이력
 
@@ -92,3 +98,5 @@
 | ch6 | CSI DaemonSet 추가 후 노드 CPU 100%, Valkey까지 Pending | GKE 관리형 로깅/모니터링 에이전트(fluentbit-gke, gke-metrics-agent, gmp)가 노드당 약 130m을 쓰는데 Loki·Prometheus와 중복이다. `gcloud container clusters update --logging=NONE --monitoring=NONE`으로 끄면 약 260m이 확보된다 |
 | ch6 | Blue/Green에서 Canary로 바꿔도 전략이 그대로 유지됨 | `kubectl apply`만으로는 전환되지 않는다. Git push를 먼저 하고 `kubectl delete rollout` 후 ArgoCD가 새 정의로 다시 만들게 한다. preview 서비스는 canaryService로 계속 쓰므로 지우면 안 된다 |
 | ch6 | Rollout을 지운 뒤 ArgoCD가 OutOfSync로 남음 | `kubectl annotate application notiflex-smb -n argocd argocd.argoproj.io/refresh=hard --overwrite`로 즉시 재조정한다 |
+| ch7 | 노드풀 생성 시 `Cluster is running incompatible operation` | ch6.2의 클러스터 업데이트가 아직 실행 중이면 노드풀을 만들 수 없다. `gcloud container operations list --zone=<ZONE> --filter="status=RUNNING"`이 비어 있는지 먼저 확인한다 |
+| ch7 | Pod을 api-pool로 옮긴 직후 Gateway가 `no healthy upstream` | 로드밸런서가 새 노드의 NEG를 다시 등록하는 데 1~2분 걸린다. 기다리면 복구된다 |
