@@ -1,0 +1,26 @@
+# 단일 바이너리 모드. ops-pool에 올린다.
+tempo:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+nodeSelector:
+  cloud.google.com/gke-nodepool: ops-pool
+
+persistence:
+  enabled: false
+
+# 데이터소스는 k8s/monitoring에서 ConfigMap으로 직접 등록한다.
+# 여기서 등록하면 기본 데이터소스가 두 개가 되어 Grafana 기동이 실패할 수 있다.
+serviceMonitor:
+  enabled: false

@@ -17,6 +17,14 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/valkey-io/valkey-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // idCounterKey는 Valkey에서 ID 카운터를 저장하는 키다.
@@ -25,6 +33,9 @@ const idCounterKey = "notiflex:id:counter"
 
 // valkeyClient는 ID 발급에 쓰는 Valkey 연결이다.
 var valkeyClient valkey.Client
+
+// tracer는 요청 구간을 기록한다.
+var tracer trace.Tracer = otel.Tracer("notiflex")
 
 // notificationsTopic은 발급한 ID를 알림 이벤트로 보내는 토픽이다.
 const notificationsTopic = "notifications"
@@ -40,7 +51,7 @@ var podName = hostname()
 var tier = envOr("NOTIFLEX_TIER", "smb")
 
 // version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.6.0"
+var version = "0.7.0"
 
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -85,6 +96,68 @@ func connectValkey() (valkey.Client, error) {
 		time.Sleep(3 * time.Second)
 	}
 	return nil, lastErr
+}
+
+// initTracing은 OTLP gRPC로 Tempo에 트레이스를 보내도록 설정한다.
+// 엔드포인트가 없으면 트레이싱 없이 동작한다.
+func initTracing(ctx context.Context) func() {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		log.Printf("OTEL_EXPORTER_OTLP_ENDPOINT가 없어 트레이싱을 건너뛴다")
+		return func() {}
+	}
+
+	exporter, err := otlptracegrpc.New(ctx,
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Printf("트레이스 exporter 생성 실패, 트레이싱 없이 계속한다: %v", err)
+		return func() {}
+	}
+
+	res, err := resource.New(ctx, resource.WithAttributes(
+		semconv.ServiceName("notiflex-api"),
+		semconv.ServiceVersion(version),
+		attribute.String("notiflex.tier", tier),
+	))
+	if err != nil {
+		log.Printf("리소스 속성 생성 실패: %v", err)
+		res = resource.Default()
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{}, propagation.Baggage{},
+	))
+	tracer = tp.Tracer("notiflex")
+	log.Printf("트레이싱 시작 (%s)", endpoint)
+
+	return func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tp.Shutdown(shutdownCtx); err != nil {
+			log.Printf("트레이서 종료 실패: %v", err)
+		}
+	}
+}
+
+// traced는 핸들러를 감싸 요청마다 span을 만든다.
+func traced(name string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracer.Start(r.Context(), name)
+		defer span.End()
+		span.SetAttributes(
+			attribute.String("notiflex.pod", podName),
+			attribute.String("notiflex.tier", tier),
+		)
+		next(w, r.WithContext(ctx))
+	}
 }
 
 // kafkaConfig는 브로커 버전에 맞춘 sarama 설정을 만든다.
@@ -259,8 +332,10 @@ func handleID(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
+	incrCtx, incrSpan := tracer.Start(ctx, "valkey.incr")
 	// INCR은 원자적이라 여러 Pod이 동시에 호출해도 번호가 겹치지 않는다.
-	n, err := valkeyClient.Do(ctx, valkeyClient.B().Incr().Key(idCounterKey).Build()).AsInt64()
+	n, err := valkeyClient.Do(incrCtx, valkeyClient.B().Incr().Key(idCounterKey).Build()).AsInt64()
+	incrSpan.End()
 	if err != nil {
 		log.Printf("ID 발급 실패: %v", err)
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -269,8 +344,10 @@ func handleID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strconv.FormatInt(n, 10)
+	_, pubSpan := tracer.Start(ctx, "kafka.publish")
 	// 알림 발송은 요청을 붙잡지 않고 Kafka로 넘긴다.
 	publishNotification(id)
+	pubSpan.End()
 
 	writeJSON(w, map[string]string{
 		"id":           id,
@@ -290,6 +367,9 @@ func handleVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	shutdownTracing := initTracing(context.Background())
+	defer shutdownTracing()
+
 	client, err := connectValkey()
 	if err != nil {
 		log.Fatalf("Valkey 연결 실패: %v", err)
@@ -304,9 +384,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", countRequest("/health", handleHealth))
-	mux.HandleFunc("GET /id", countRequest("/id", handleID))
-	mux.HandleFunc("GET /version", countRequest("/version", handleVersion))
+	mux.HandleFunc("GET /health", countRequest("/health", traced("GET /health", handleHealth)))
+	mux.HandleFunc("GET /id", countRequest("/id", traced("GET /id", handleID)))
+	mux.HandleFunc("GET /version", countRequest("/version", traced("GET /version", handleVersion)))
 	mux.HandleFunc("GET /metrics", handleMetrics)
 
 	addr := ":8080"
