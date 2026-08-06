@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: notiflex-api
   namespace: notiflex
@@ -7,6 +7,15 @@ metadata:
     app: notiflex-api
 spec:
   replicas: 2
+  strategy:
+    blueGreen:
+      # 실제 트래픽을 받는 서비스
+      activeService: notiflex-api
+      # 새 버전을 먼저 붙여 확인하는 서비스
+      previewService: notiflex-api-preview
+      autoPromotionEnabled: true
+      # preview에서 30초 확인한 뒤 active로 전환한다.
+      autoPromotionSeconds: 30
   selector:
     matchLabels:
       app: notiflex-api

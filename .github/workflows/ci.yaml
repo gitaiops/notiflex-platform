@@ -50,13 +50,13 @@ jobs:
             exit 1
           fi
           echo "적용할 이미지: $IMAGE"
-          sed -i "s|image: .*/notiflex/api:.*|image: ${IMAGE}|" k8s/smb/deployment.yaml
-          if git diff --quiet k8s/smb/deployment.yaml; then
+          sed -i "s|image: .*/notiflex/api:.*|image: ${IMAGE}|" k8s/smb/rollout.yaml
+          if git diff --quiet k8s/smb/rollout.yaml; then
             echo "매니페스트에 변경이 없다."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add k8s/smb/deployment.yaml
+          git add k8s/smb/rollout.yaml
           git commit -m "ci: 이미지 태그를 sha-${GITHUB_SHA::7}로 갱신"
           git push origin HEAD:main
