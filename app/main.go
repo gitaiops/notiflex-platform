@@ -33,7 +33,7 @@ var podName = hostname()
 var tier = envOr("NOTIFLEX_TIER", "smb")
 
 // version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.4.0"
+var version = "0.5.0"
 
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -175,8 +175,10 @@ func handleID(w http.ResponseWriter, r *http.Request) {
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{
-		"version": version,
-		"pod":     podName,
+		"version":  version,
+		"pod":      podName,
+		"tier":     tier,
+		"strategy": "canary",
 	})
 }
 
