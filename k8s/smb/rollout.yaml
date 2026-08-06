@@ -8,14 +8,19 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    blueGreen:
-      # 실제 트래픽을 받는 서비스
-      activeService: notiflex-api
-      # 새 버전을 먼저 붙여 확인하는 서비스
-      previewService: notiflex-api-preview
-      autoPromotionEnabled: true
-      # preview에서 30초 확인한 뒤 active로 전환한다.
-      autoPromotionSeconds: 30
+    canary:
+      # 새 버전으로 가는 트래픽을 받는 서비스 (Blue/Green의 preview를 재사용한다)
+      canaryService: notiflex-api-preview
+      # 기존 버전이 받는 서비스
+      stableService: notiflex-api
+      # 비율을 단계적으로 올리며 각 단계에서 관찰 시간을 둔다.
+      steps:
+        - setWeight: 20
+        - pause: { duration: 30s }
+        - setWeight: 50
+        - pause: { duration: 30s }
+        - setWeight: 80
+        - pause: { duration: 30s }
   selector:
     matchLabels:
       app: notiflex-api
