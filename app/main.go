@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -25,6 +26,12 @@ const idCounterKey = "notiflex:id:counter"
 // valkeyClient는 ID 발급에 쓰는 Valkey 연결이다.
 var valkeyClient valkey.Client
 
+// notificationsTopic은 발급한 ID를 알림 이벤트로 보내는 토픽이다.
+const notificationsTopic = "notifications"
+
+// producer는 알림 이벤트를 Kafka로 보낸다. 브로커가 없으면 nil로 두고 동작을 건너뛴다.
+var producer sarama.AsyncProducer
+
 // podName은 응답이 어느 Pod에서 나왔는지 구분하기 위해 사용한다.
 var podName = hostname()
 
@@ -33,7 +40,7 @@ var podName = hostname()
 var tier = envOr("NOTIFLEX_TIER", "smb")
 
 // version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.5.0"
+var version = "0.6.0"
 
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -78,6 +85,102 @@ func connectValkey() (valkey.Client, error) {
 		time.Sleep(3 * time.Second)
 	}
 	return nil, lastErr
+}
+
+// kafkaConfig는 브로커 버전에 맞춘 sarama 설정을 만든다.
+func kafkaConfig() *sarama.Config {
+	cfg := sarama.NewConfig()
+	cfg.Version = sarama.V4_0_0_0
+	cfg.Producer.Return.Successes = false
+	cfg.Producer.Return.Errors = true
+	cfg.ClientID = "notiflex-" + tier
+	return cfg
+}
+
+// startKafka는 Producer와 Consumer를 준비한다.
+// 브로커 주소가 없으면 Kafka 없이 동작한다(ch8 이전 상태와 호환).
+func startKafka() {
+	brokers := os.Getenv("KAFKA_BROKER")
+	if brokers == "" {
+		log.Printf("KAFKA_BROKER가 없어 이벤트 발행을 건너뛴다")
+		return
+	}
+	list := strings.Split(brokers, ",")
+
+	var err error
+	for i := 1; i <= 10; i++ {
+		producer, err = sarama.NewAsyncProducer(list, kafkaConfig())
+		if err == nil {
+			break
+		}
+		log.Printf("Kafka Producer 연결 재시도 %d/10: %v", i, err)
+		time.Sleep(3 * time.Second)
+	}
+	if err != nil {
+		log.Printf("Kafka Producer 연결 실패, 이벤트 발행 없이 계속한다: %v", err)
+		producer = nil
+		return
+	}
+	log.Printf("Kafka Producer 연결 완료 (%s)", brokers)
+
+	go func() {
+		for e := range producer.Errors() {
+			log.Printf("Kafka 발행 실패: %v", e)
+		}
+	}()
+
+	go consumeNotifications(list)
+}
+
+// consumeNotifications는 발행된 알림 이벤트를 받아 로그로 남긴다.
+// 실제 서비스라면 여기서 발송 처리를 한다.
+func consumeNotifications(brokers []string) {
+	var consumer sarama.Consumer
+	var err error
+	for i := 1; i <= 10; i++ {
+		consumer, err = sarama.NewConsumer(brokers, kafkaConfig())
+		if err == nil {
+			break
+		}
+		log.Printf("Kafka Consumer 연결 재시도 %d/10: %v", i, err)
+		time.Sleep(3 * time.Second)
+	}
+	if err != nil {
+		log.Printf("Kafka Consumer 연결 실패: %v", err)
+		return
+	}
+
+	partitions, err := consumer.Partitions(notificationsTopic)
+	if err != nil {
+		log.Printf("파티션 조회 실패: %v", err)
+		return
+	}
+	for _, part := range partitions {
+		pc, err := consumer.ConsumePartition(notificationsTopic, part, sarama.OffsetNewest)
+		if err != nil {
+			log.Printf("파티션 %d 구독 실패: %v", part, err)
+			continue
+		}
+		go func(pc sarama.PartitionConsumer, part int32) {
+			for msg := range pc.Messages() {
+				log.Printf("Kafka 수신 [partition=%d offset=%d] %s", part, msg.Offset, string(msg.Value))
+			}
+		}(pc, part)
+	}
+	log.Printf("Kafka Consumer 구독 시작 (%s, 파티션 %d개)", notificationsTopic, len(partitions))
+}
+
+// publishNotification은 발급한 ID를 알림 이벤트로 보낸다.
+func publishNotification(id string) {
+	if producer == nil {
+		return
+	}
+	payload := fmt.Sprintf(`{"id":%q,"tier":%q,"pod":%q}`, id, tier, podName)
+	producer.Input() <- &sarama.ProducerMessage{
+		Topic: notificationsTopic,
+		Key:   sarama.StringEncoder(tier),
+		Value: sarama.StringEncoder(payload),
+	}
 }
 
 func hostname() string {
@@ -165,8 +268,12 @@ func handleID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	id := strconv.FormatInt(n, 10)
+	// 알림 발송은 요청을 붙잡지 않고 Kafka로 넘긴다.
+	publishNotification(id)
+
 	writeJSON(w, map[string]string{
-		"id":           strconv.FormatInt(n, 10),
+		"id":           id,
 		"generated_by": podName,
 		"tier":         tier,
 		"source":       "valkey",
@@ -190,6 +297,11 @@ func main() {
 	valkeyClient = client
 	defer valkeyClient.Close()
 	log.Printf("Valkey 연결 완료")
+
+	startKafka()
+	if producer != nil {
+		defer producer.Close()
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", countRequest("/health", handleHealth))

@@ -60,6 +60,8 @@ spec:
             # Valkey는 notiflex 네임스페이스에 있으므로 전체 DNS 이름으로 접근한다.
             - name: VALKEY_ADDR
               value: valkey-primary.notiflex.svc.cluster.local:6379
+            - name: KAFKA_BROKER
+              value: notiflex-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
             # 비밀번호는 K8s Secret이 아니라 Secret Manager에서 마운트한 파일로 읽는다.
             - name: VALKEY_PASSWORD_FILE
               value: /mnt/secrets/valkey-password
