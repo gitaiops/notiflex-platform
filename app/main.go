@@ -51,7 +51,7 @@ var podName = hostname()
 var tier = envOr("NOTIFLEX_TIER", "smb")
 
 // version은 배포된 코드의 버전이다. 빌드할 때 ldflags로 덮어쓸 수 있다.
-var version = "0.7.0"
+var version = "0.7.1"
 
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
