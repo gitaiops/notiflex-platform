@@ -72,5 +72,5 @@ app/ 수정 → git push → GitHub Actions 빌드 → 매니페스트 태그 �
 
 ## 실습 가이드
 
-이 저장소를 직접 만들어보려면 [gitaiops/_Book_GitAIOps](https://github.com/gitaiops/_Book_GitAIOps)의
+이 저장소를 직접 만들어보려면 [sysnet4admin/_Book_GitAIOps](https://github.com/sysnet4admin/_Book_GitAIOps)의
 가드레일을 따라간다. 자연어로 요청하면 Claude Code가 각 장의 절차를 참조해 실행한다.
